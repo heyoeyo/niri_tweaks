@@ -10,42 +10,42 @@ This script makes niri behave more like a 'regular' tiling window manager up to 
 
 The example below shows the sequence of opening 4 windows, when 'N=3'. The first opened window (A) will be maximized:
 ```
-┌───────────────┐         
-│               │         
-│       A       │         
-│               │         
-│               │         
-└───────────────┘         
+┌─────────────┐
+│             │
+│      A      │
+│             │
+│             │
+└─────────────┘
 ```
 
 Opening a second window (B) will collapse (A) so the windows tile:
 ```
-┌──────┐ ┌──────┐
-│      │ │      │
-│  A   │ │  B   │
-│      │ │      │
-│      │ │      │
-└──────┘ └──────┘
+┌─────┐ ┌─────┐
+│     │ │     │
+│  A  │ │  B  │
+│     │ │     │
+│     │ │     │
+└─────┘ └─────┘
 ```
 
 Opening a third window (C) will begin stacking windows on the right:
 ```             
-┌──────┐ ┌──────┐
-│      │ │  B   │
-│  A   │ └──────┘
-│      │ ┌──────┐
-│      │ │  C   │
-└──────┘ └──────┘
+┌─────┐ ┌─────┐
+│     │ │  B  │
+│  A  │ └─────┘
+│     │ ┌─────┐
+│     │ │  C  │
+└─────┘ └─────┘
 ```
 
 The fourth window (D), opens off-screen in the normal niri scrolling pattern:
 ```                
-┌──────┐ ┌──────┐ ┌──────┐
-│      │ │  B   │ │      │
-│ A    │ └──────┘ │ D    │
-│      │ ┌──────┐ │      │
-│      │ │  C   │ │      │
-└──────┘ └──────┘ └──────┘
+┌─────┐ ┌─────┐ ┌─────┐
+│     │ │  B  │ │     │
+│  A  │ └─────┘ │  D  │
+│     │ ┌─────┐ │     │
+│     │ │  C  │ │     │
+└─────┘ └─────┘ └─────┘
 ```
 
 Any other windows opened will continue to be added to the right.
@@ -53,7 +53,7 @@ Any other windows opened will continue to be added to the right.
 
 #### Quick test run
 
-This script uses python and doesn't require any build step or dependencies (just need a new-ish version of python3, 3.7+ should be ok). If you'd like to quickly try this out, use the following terminal command:
+If you'd like to quickly try this out, use the following terminal command:
 ```bash
 curl https://raw.githubusercontent.com/heyoeyo/niri_tweaks/refs/heads/main/niri_tile_to_n.py | python3
 ```
