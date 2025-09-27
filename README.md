@@ -50,7 +50,6 @@ The fourth window (D), opens off-screen in the normal niri scrolling pattern:
 
 Any other windows opened will continue to be added to the right.
 
-
 ### Quick test run
 
 If you'd like to quickly try this out, use the following terminal command:
@@ -76,6 +75,36 @@ python3 niri_tile_to_n.py --help
 ```
 
 The script itself is one big (ugly) python file, but should be easy to edit if you want more specific customizations. Most of the script is dedicated to listening to the niri IPC, while the [last 50 lines](https://github.com/heyoeyo/niri_tweaks/blob/d4f64bf4d79407f3cb70283392aadfb96aa240ff/niri_tile_to_n.py#L522-L568) or so hold all of the custom windowing logic (so hack away here if you want some more custom behavior).
+
+## niri_spawn_or_jump.py
+
+This script acts as an alternative to the `spawn` command in niri. It can be used to spawn an application, but if the application is already open it will jump to the existing instance. If there are multiple instances, then it will cycle between them. By default this works across all workspaces and for both floating and tiled windows, though this can be adjusted with flags. To see a list of available modifier flags, run:
+
+```bash
+python3 /path/to/niri_spawn_or_jump.py --help
+```
+
+### Usage
+
+To bind to a keypress, you need to add a line to the niri config, like:
+
+```bash
+Mod+T { spawn "python3" "/path/to/niri_spawn_or_jump.py" "alacritty"; }
+```
+
+This also works for flatpaks:
+
+```bash
+Mod+B { spawn "python3" "/path/to/niri_spawn_or_jump.py" "flatpak run app.zen_browser.app"; }
+```
+By default, this will search for existing instances based on the `app-id` that niri assigns, assuming this matches the name used to run the application (e.g. `alacritty` or `app.zen_browser.app`). Some applications seem to use a different name, like the flatpak for Chromium, which has an `app-id` of `chromium-browser`. For these applications, the `app-id` can be passed as a second argument:
+
+```bash
+Mod+B { spawn "python3" "/path/to/niri_spawn_or_jump.py" "flatpak run org.chromium.Chromium" "chromium-browser"; }
+```
+
+To help figure out the `app-id` for these sorts of applications, run this script without any arguments. The `app-id` of the currently focused window will then be printed out in the terminal.
+
 
 ## fuzzel_helper.sh
 
