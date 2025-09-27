@@ -29,7 +29,7 @@ Opening a second window (B) will collapse (A) so the windows tile:
 ```
 
 Opening a third window (C) will begin stacking windows on the right:
-```             
+```
 ┌─────┐ ┌─────┐
 │     │ │  B  │
 │  A  │ └─────┘
@@ -39,7 +39,7 @@ Opening a third window (C) will begin stacking windows on the right:
 ```
 
 The fourth window (D), opens off-screen in the normal niri scrolling pattern:
-```                
+```
 ┌─────┐ ┌─────┐ ┌─────┐
 │     │ │  B  │ │     │
 │  A  │ └─────┘ │  D  │
@@ -111,7 +111,7 @@ The following keyd config maps 'tapping Super' to be equivalent to 'Super+0', al
 [global]
 
 # Max milliseconds before ignoring key release
-overload_tap_timeout = 500;
+overload_tap_timeout = 300;
 
 
 [main]
@@ -132,7 +132,7 @@ insert = esc
 
 ## swaybg_helper.sh
 
-This script simply helps to set a background wallpaper, using [swaybg](https://github.com/swaywm/swaybg), while also providing support for cycling wallpapers (which swaybg doesn't do by default). It works by loading the 'most recently accessed' file in a given folder (and will use `touch` to update the oldest-accessed file to implement cycling).
+This script uses [swaybg](https://github.com/swaywm/swaybg), to set a background wallpaper, while also providing support for cycling wallpapers (which swaybg doesn't do by default). It works by loading the 'most recently accessed' file in a given folder (and will use `touch` to update the oldest-accessed file to implement cycling).
 
 ### Usage
 
@@ -147,7 +147,7 @@ To have this script set a wallpaper on startup, first make sure swaybg is instal
 spawn-at-startup "bash" "/path/to/swaybg_helper.sh" "-f" "/path/to/wallpapers/folder"
 ```
 
-The `-f` flag can be ommited if images are placed in `~/Pictures/Wallpapers`
+The `-f` flag can be ommited if images are placed in `~/Pictures/Wallpapers`. Adding the `-c` flag will result in the wallpaper changing on each login.
 
 #### Cycle wallpaper on keypress
 
