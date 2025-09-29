@@ -58,11 +58,11 @@ if TARGET_APP_ID is None and COMMAND is not None:
 # %% Helper functions
 
 
-def run_command(command_str: str, **kwargs):
+def run_command(command_str: str, **kwargs) -> subprocess.CompletedProcess:
     return subprocess.run(command_str.split(" "), **kwargs)
 
 
-def focus_window(id: int):
+def focus_window(id: int) -> subprocess.CompletedProcess:
     return run_command(f"niri msg action focus-window --id {id}")
 
 
@@ -72,11 +72,19 @@ def get_focused_window() -> dict:
     return json.loads(resp.stdout)
 
 
-def get_active_workspaces():
+def get_active_workspaces() -> list[int]:
     resp = run_command("niri msg --json workspaces", capture_output=True, text=True)
     resp.check_returncode()
-    resp_dict = json.loads(resp.stdout)
-    return [wspace_dict["id"] for wspace_dict in resp_dict if wspace_dict["is_active"]]
+    resp_list = json.loads(resp.stdout)
+    return [wspace_dict["id"] for wspace_dict in resp_list if wspace_dict["is_active"]]
+
+
+def get_focused_workspace(default_if_missing=1) -> int:
+    resp = run_command("niri msg --json workspaces", capture_output=True, text=True)
+    resp.check_returncode()
+    resp_list = json.loads(resp.stdout)
+    focused_wspace_ids = [wspace_dict["id"] for wspace_dict in resp_list if wspace_dict["is_focused"]]
+    return focused_wspace_ids[0] if len(focused_wspace_ids) > 0 else default_if_missing
 
 
 def get_windows_list() -> list[dict]:
@@ -163,9 +171,9 @@ target_pos_list = []
 for win_dict in target_win_list:
     target_pos_list.append(make_sortable_position(win_dict))
 
-# Add the current window to listing, if it isn't already there
+# Figure out the current view position & add to listing if needed
 curr_win = get_focused_window()
-curr_pos = make_sortable_position(curr_win)
+curr_pos = make_sortable_position(curr_win) if curr_win is not None else (get_focused_workspace(), 0, 0, -1, -1)
 if curr_pos not in target_pos_list:
     target_pos_list.append(curr_pos)
 
