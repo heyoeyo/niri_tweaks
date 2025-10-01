@@ -3,11 +3,11 @@
 This repo holds some basic helper scripts that can be used to modify the behavior of the [niri](https://github.com/YaLTeR/niri) wayland compositor.
 
 #### Scripts:
-- [niri_tile_to_n.py](#niri_tile_to_n.py)
-- [niri_spawn_or_jump.py](#niri_spawn_or_jump.py)
-- [niri_window_details.sh](#niri_window_details.sh)
-- [fuzzel_helper.sh](#fuzzel_helper.sh)
-- [swaybg_helper.sh](#swaybg_helper.sh)
+- [niri_tile_to_n.py](#niri_tile_to_npy)
+- [niri_spawn_or_jump.py](#niri_spawn_or_jumppy)
+- [niri_window_details.sh](#niri_window_detailssh)
+- [fuzzel_helper.sh](#fuzzel_helpersh)
+- [swaybg_helper.sh](#swaybg_helpersh)
 
 
 ## niri_tile_to_n.py
