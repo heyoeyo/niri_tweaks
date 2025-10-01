@@ -1,6 +1,14 @@
 # niri tweaks
 
-This repo holds some basic helper scripts that are used to modify the behavior of the [niri](https://github.com/YaLTeR/niri) wayland compositor.
+This repo holds some basic helper scripts that can be used to modify the behavior of the [niri](https://github.com/YaLTeR/niri) wayland compositor.
+
+#### Scripts:
+- [niri_tile_to_n.py](#niri_tile_to_n.py)
+- [niri_spawn_or_jump.py](#niri_spawn_or_jump.py)
+- [niri_window_details.sh](#niri_window_details.sh)
+- [fuzzel_helper.sh](#fuzzel_helper.sh)
+- [swaybg_helper.sh](#swaybg_helper.sh)
+
 
 ## niri_tile_to_n.py
 
@@ -76,6 +84,7 @@ python3 niri_tile_to_n.py --help
 
 The script itself is one big (ugly) python file, but should be easy to edit if you want more specific customizations. Most of the script is dedicated to listening to the niri IPC, while the [last 50 lines](https://github.com/heyoeyo/niri_tweaks/blob/d4f64bf4d79407f3cb70283392aadfb96aa240ff/niri_tile_to_n.py#L522-L568) or so hold all of the custom windowing logic (so hack away here if you want some more custom behavior).
 
+
 ## niri_spawn_or_jump.py
 
 This script acts as an alternative to the `spawn` command in niri. It can be used to spawn an application, but if the application is already open it will jump to the existing instance. If there are multiple instances, then it will cycle between them. By default this works across all workspaces and for both floating and tiled windows, though this can be adjusted with flags. To see a list of available modifier flags, run:
@@ -104,6 +113,18 @@ Mod+B { spawn "python3" "/path/to/niri_spawn_or_jump.py" "flatpak run org.chromi
 ```
 
 To help figure out the `app-id` for these sorts of applications, run this script without any arguments. The `app-id` of the currently focused window will then be printed out in the terminal.
+
+
+## niri_window_details.sh
+
+This script is mostly used for debugging. It prints out basic window information from calling `niri msg focused-window` into a notification. For example, this can print out the `app-id` of a window, making it useful for setting up window rules.
+
+A keybinding can be added to the niri config file to trigger this:
+```bash
+Mod+Backslash repeat=false { spawn "bash" "/path/to/niri_window_details.sh"; }
+```
+
+Pressing this keybinding while focusing a window will give you a notification that includes basic information about that window. It's also easy to modify the script to print out other info if needed.
 
 
 ## fuzzel_helper.sh
