@@ -93,15 +93,17 @@ This script acts as an alternative to the `spawn` command in niri. It can be use
 python3 /path/to/niri_spawn_or_jump.py --help
 ```
 
+For example, `-w` will cause jump/cycling behavior to only search on the current workspace. The `-p` flag can be used to 'pull' an existing instance instead of jumping to it, while `-s` can be used to 'push' a focused instance away (to the end of the workspace).
+
 ### Usage
 
-To bind to a keypress, you need to add a line to the niri config, like:
+To bind to a keypress, you need to add a line to the niri config. Flags for the script can be added at the end, like:
 
 ```bash
-Mod+T { spawn "python3" "/path/to/niri_spawn_or_jump.py" "alacritty"; }
+Mod+T { spawn "python3" "/path/to/niri_spawn_or_jump.py" "alacritty" "-w" "-p" "-s"; }
 ```
 
-This also works for flatpaks:
+For flatpaks, use the entire run command:
 
 ```bash
 Mod+B { spawn "python3" "/path/to/niri_spawn_or_jump.py" "flatpak run app.zen_browser.app"; }
