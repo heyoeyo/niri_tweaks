@@ -8,6 +8,7 @@
 import argparse
 import subprocess
 import json
+from pathlib import Path
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -52,6 +53,8 @@ assert not (ALWAYS_SPAWN and not ENABLE_SPAWN), "Cannot always spawn & disable s
 # Fill in missing app-id
 if TARGET_APP_ID is None and COMMAND is not None:
     TARGET_APP_ID = COMMAND.split(" ")[-1] if COMMAND.startswith("flatpak") else COMMAND
+    if Path(TARGET_APP_ID).is_file():
+        TARGET_APP_ID = Path(TARGET_APP_ID).stem
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -116,11 +119,7 @@ if enable_appid_inspection:
 # %% Main code
 
 # Check if the target app-id is already opened
-target_win_list = []
-for win_dict in get_windows_list():
-    win_app_id = win_dict["app_id"]
-    if win_app_id == TARGET_APP_ID:
-        target_win_list.append(win_dict)
+target_win_list = [w for w in get_windows_list() if w["app_id"].lower() == TARGET_APP_ID.lower()]
 
 # Handle script arg modifiers
 if ALWAYS_SPAWN:
