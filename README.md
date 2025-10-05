@@ -4,7 +4,7 @@ This repo holds some basic helper scripts that can be used to modify the behavio
 
 #### Scripts:
 - [niri_tile_to_n.py](#niri_tile_to_npy)
-- [niri_spawn_or_jump.py](#niri_spawn_or_jumppy)
+- [niri_spawnjump.py](#niri_spawnjumppy)
 - [niri_window_details.sh](#niri_window_detailssh)
 - [fuzzel_helper.sh](#fuzzel_helpersh)
 - [swaybg_helper.sh](#swaybg_helpersh)
@@ -85,12 +85,12 @@ python3 niri_tile_to_n.py --help
 The script itself is one big (ugly) python file, but should be easy to edit if you want more specific customizations. Most of the script is dedicated to listening to the niri IPC, while the [last 50 lines](https://github.com/heyoeyo/niri_tweaks/blob/d4f64bf4d79407f3cb70283392aadfb96aa240ff/niri_tile_to_n.py#L522-L568) or so hold all of the custom windowing logic (so hack away here if you want some more custom behavior).
 
 
-## niri_spawn_or_jump.py
+## niri_spawnjump.py
 
 This script acts as an alternative to the `spawn` command in niri. It can be used to spawn an application, but if the application is already open it will jump to the existing instance. If there are multiple instances, then it will cycle between them. By default this works across all workspaces and for both floating and tiled windows, though this can be adjusted with flags. To see a list of available modifier flags, run:
 
 ```bash
-python3 /path/to/niri_spawn_or_jump.py --help
+python3 /path/to/niri_spawnjump.py --help
 ```
 
 For example, `-w` will cause jump/cycling behavior to only search on the current workspace. The `-p` flag can be used to 'pull' an existing instance instead of jumping to it, while `-s` can be used to 'push' a focused instance away (to the end of the workspace).
@@ -100,21 +100,31 @@ For example, `-w` will cause jump/cycling behavior to only search on the current
 To bind to a keypress, you need to add a line to the niri config. Flags for the script can be added at the end, like:
 
 ```bash
-Mod+T { spawn "python3" "/path/to/niri_spawn_or_jump.py" "alacritty" "-w" "-p" "-s"; }
+Mod+T { spawn "python3" "/path/to/niri_spawnjump.py" "alacritty" "-w" "-p" "-s"; }
 ```
 
 For flatpaks, use the entire run command:
 
 ```bash
-Mod+B { spawn "python3" "/path/to/niri_spawn_or_jump.py" "flatpak run app.zen_browser.app"; }
+Mod+B { spawn "python3" "/path/to/niri_spawnjump.py" "flatpak run app.zen_browser.app"; }
 ```
 By default, this will search for existing instances based on the `app-id` that niri assigns, assuming this matches the name used to run the application (e.g. `alacritty` or `app.zen_browser.app`). Some applications seem to use a different name, like the flatpak for Chromium, which has an `app-id` of `chromium-browser`. For these applications, the `app-id` can be passed as a second argument:
 
 ```bash
-Mod+B { spawn "python3" "/path/to/niri_spawn_or_jump.py" "flatpak run org.chromium.Chromium" "chromium-browser"; }
+Mod+B { spawn "python3" "/path/to/niri_spawnjump.py" "flatpak run org.chromium.Chromium" "chromium-browser"; }
 ```
 
 To help figure out the `app-id` for these sorts of applications, run this script without any arguments. The `app-id` of the currently focused window will then be printed out in the terminal.
+
+### Scratchpad
+
+The script includes support for providing a 'scratchpad' workspace name (use `-t workspacename`), this will auto-enable `--push` and `--pull` and will push windows to the provided workspace name, instead of pushing them to the end of the current workspace:
+
+```bash
+Mod+T { spawn "python3" "/path/to/niri_spawnjump.py" "alacritty" "-t" "scratch"; }
+```
+
+Your niri config needs to include a line like: `workspace "scratch"` for this command to work properly.
 
 
 ## niri_window_details.sh

@@ -35,6 +35,12 @@ parser.add_argument(
     action="store_true",
     help="If only 1 instance exists and it's focused, push it to end of workspace (or off, if floating)",
 )
+parser.add_argument(
+    "-t",
+    "--scratch",
+    type=str,
+    help="Auto-enables push/pull. Applications are pushed to a workspace with this name",
+)
 parser.add_argument("--no_floats", action="store_true", help="Don't check for floating windows")
 parser.add_argument("--no_tiles", action="store_true", help="Don't check for tiled windows")
 parser.add_argument("--no_spawn", action="store_true", help="Never spawn, only jump/cycle instances")
@@ -47,9 +53,10 @@ args = parser.parse_args()
 COMMAND = args.command
 TARGET_APP_ID = args.app_id
 CYCLE_FORWARD = not args.backward
-ACTIVE_WORKSPACE = args.workspace
+ACTIVE_WORKSPACE_ONLY = args.workspace
 ENABLE_PULL = args.pull
 ENABLE_PUSH = args.push
+SCRATCHPAD = args.scratch
 NO_FLOATS = args.no_floats
 NO_TILES = args.no_tiles
 ENABLE_SPAWN = not args.no_spawn
@@ -58,6 +65,12 @@ ALWAYS_SPAWN = args.always_spawn
 # Sanity checks
 assert not (NO_FLOATS and NO_TILES), "Cannot disable checks for floating & tiled windows (enable only one or neither)"
 assert not (ALWAYS_SPAWN and not ENABLE_SPAWN), "Cannot always spawn & disable spawning at the same time!"
+
+# Auto-config for push/pull to scratchpad, if provided
+if SCRATCHPAD is not None:
+    ENABLE_PULL = True
+    ENABLE_PUSH = True
+    ACTIVE_WORKSPACE_ONLY = False
 
 # Fill in missing app-id
 if TARGET_APP_ID is None and COMMAND is not None:
@@ -162,8 +175,17 @@ def pull_window(target_window_data: dict) -> None:
     return
 
 
-def push_window(target_window_data: dict) -> None:
-    """Pushs a target window to the end of the current workspace, or to the next workspace if floating"""
+def push_window(target_window_data: dict, scratchpad_name: str | None = None) -> None:
+    """
+    Pushs a target window to the end of the current workspace, or to the next workspace if floating.
+    If a scratchpad (workspace) name is provided, then push windows to that workspace instead.
+    """
+
+    # Push to 'scratchpad' workspace, if provided
+    if scratchpad_name is not None:
+        id_arg = f"--window-id {target_window_data['id']}"
+        run_command(f"niri msg action move-window-to-workspace {id_arg} {scratchpad_name} --focus false")
+        return
 
     # We can't move floats to the end of the workspace, so just push them to the next workspace
     # (not ideal, but if 'pull' is enable, user can quickly bring it back...)
@@ -213,7 +235,7 @@ target_win_list = [w for w in get_windows_list() if w["app_id"].lower() == TARGE
 # Handle script arg modifiers
 if ALWAYS_SPAWN:
     target_win_list = []
-if ACTIVE_WORKSPACE:
+if ACTIVE_WORKSPACE_ONLY:
     active_wspace_ids_list = get_active_workspace_ids()
     target_win_list = [w for w in target_win_list if w["workspace_id"] in active_wspace_ids_list]
 if NO_FLOATS:
@@ -240,7 +262,7 @@ if num_already_open == 0:
 if num_already_open == 1:
     target_win = target_win_list[0]
     if target_win["is_focused"] and ENABLE_PUSH:
-        push_window(target_win)
+        push_window(target_win, SCRATCHPAD)
     elif ENABLE_PULL:
         pull_window(target_win)
     else:
