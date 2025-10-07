@@ -8,6 +8,7 @@ This repo holds some basic helper scripts that can be used to modify the behavio
 - [niri_window_details.sh](#niri_window_detailssh)
 - [fuzzel_helper.sh](#fuzzel_helpersh)
 - [swaybg_helper.sh](#swaybg_helpersh)
+- [workspace_helper.py](#workspace_helperpy)
 
 
 ## niri_tile_to_n.py
@@ -219,3 +220,12 @@ Mod+Shift+W { spawn "bash" "/path/to/swaybg_helper.sh" "-c" "-d" "-f" "/path/to/
 ```
 
 Again, `-f` can be omitted as can `-d` if having a delay isn't a concern.
+
+## workspace_helper.py
+
+This is a simple script meant to augment the `focus-workspace` commands normally bound to `Mod+1`, `Mod+2`, `Mod+3` etc. When already on the target workspace, this script will jump focus to the first column (or last, if already on the first). This removes the need for dedicated [Mod+Home/Mod+End](https://github.com/YaLTeR/niri/blob/e837e39623457dc5ad29c34a5ce4d4616e5fbf1e/resources/default-config.kdl#L427-L428) keybinds, for example.
+
+To use this script, replace the existing `focus-workspace #` keybinds with a call to this script, for example:
+```bash
+Mod+1 { spawn "python3" "/path/to/workspace_helper.py" "1"; }
+```
