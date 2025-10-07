@@ -6,9 +6,9 @@ This repo holds some basic helper scripts that can be used to modify the behavio
 - [niri_tile_to_n.py](#niri_tile_to_npy)
 - [niri_spawnjump.py](#niri_spawnjumppy)
 - [niri_window_details.sh](#niri_window_detailssh)
+- [niri_workspace_helper.py](#niri_workspace_helperpy)
 - [fuzzel_helper.sh](#fuzzel_helpersh)
 - [swaybg_helper.sh](#swaybg_helpersh)
-- [workspace_helper.py](#workspace_helperpy)
 
 
 ## niri_tile_to_n.py
@@ -86,6 +86,8 @@ python3 niri_tile_to_n.py --help
 The script itself is one big (ugly) python file, but should be easy to edit if you want more specific customizations. Most of the script is dedicated to listening to the niri IPC, while the [last 50 lines](https://github.com/heyoeyo/niri_tweaks/blob/d4f64bf4d79407f3cb70283392aadfb96aa240ff/niri_tile_to_n.py#L522-L568) or so hold all of the custom windowing logic (so hack away here if you want some more custom behavior).
 
 
+<br>
+
 ## niri_spawnjump.py
 
 This script acts as an alternative to the `spawn` command in niri. It can be used to spawn an application, but if the application is already open it will jump to the existing instance. If there are multiple instances, then it will cycle between them. By default this works across all workspaces and for both floating and tiled windows, though this can be adjusted with flags. To see a list of available modifier flags, run:
@@ -128,6 +130,8 @@ Mod+T { spawn "python3" "/path/to/niri_spawnjump.py" "alacritty" "-t" "scratch";
 Your niri config needs to include a line like: `workspace "scratch"` for this command to work properly.
 
 
+<br>
+
 ## niri_window_details.sh
 
 This script is mostly used for debugging. It prints out basic window information from calling `niri msg focused-window` into a notification. For example, this can print out the `app-id` of a window, making it useful for setting up window rules.
@@ -139,6 +143,20 @@ Mod+Backslash repeat=false { spawn "bash" "/path/to/niri_window_details.sh"; }
 
 Pressing this keybinding while focusing a window will give you a notification that includes basic information about that window. It's also easy to modify the script to print out other info if needed.
 
+
+<br>
+
+## niri_workspace_helper.py
+
+This is a simple script meant to augment the `focus-workspace` commands normally bound to `Mod+1`, `Mod+2`, `Mod+3` etc. When already on the target workspace, this script will jump focus to the first column (or last, if already on the first). This removes the need for dedicated [Mod+Home/Mod+End](https://github.com/YaLTeR/niri/blob/e837e39623457dc5ad29c34a5ce4d4616e5fbf1e/resources/default-config.kdl#L427-L428) keybinds, for example.
+
+To use this script, replace the existing `focus-workspace #` keybinds with a call to this script, for example:
+```bash
+Mod+1 { spawn "python3" "/path/to/niri_workspace_helper.py" "1"; }
+```
+
+
+<br>
 
 ## fuzzel_helper.sh
 
@@ -193,9 +211,11 @@ insert = esc
 </details>
 
 
+<br>
+
 ## swaybg_helper.sh
 
-This script uses [swaybg](https://github.com/swaywm/swaybg), to set a background wallpaper, while also providing support for cycling wallpapers (which swaybg doesn't do by default). It works by loading the 'most recently accessed' file in a given folder (and will use `touch` to update the oldest-accessed file to implement cycling).
+This script uses [swaybg](https://github.com/swaywm/swaybg) to set a background wallpaper while also providing support for cycling wallpapers (which swaybg doesn't do by default). It works by loading the 'most recently accessed' file in a given folder (and will use `touch` to update the oldest-accessed file to implement cycling).
 
 ### Usage
 
@@ -221,11 +241,3 @@ Mod+Shift+W { spawn "bash" "/path/to/swaybg_helper.sh" "-c" "-d" "-f" "/path/to/
 
 Again, `-f` can be omitted as can `-d` if having a delay isn't a concern.
 
-## workspace_helper.py
-
-This is a simple script meant to augment the `focus-workspace` commands normally bound to `Mod+1`, `Mod+2`, `Mod+3` etc. When already on the target workspace, this script will jump focus to the first column (or last, if already on the first). This removes the need for dedicated [Mod+Home/Mod+End](https://github.com/YaLTeR/niri/blob/e837e39623457dc5ad29c34a5ce4d4616e5fbf1e/resources/default-config.kdl#L427-L428) keybinds, for example.
-
-To use this script, replace the existing `focus-workspace #` keybinds with a call to this script, for example:
-```bash
-Mod+1 { spawn "python3" "/path/to/workspace_helper.py" "1"; }
-```
