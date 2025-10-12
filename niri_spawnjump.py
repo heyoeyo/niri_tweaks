@@ -123,7 +123,29 @@ def get_windows_list() -> list[dict]:
     return json.loads(resp.stdout)
 
 
-def pull_window(target_window_data: dict) -> None:
+def check_is_stacked_in_column(target_window_data: dict, all_windows_data: list[dict]) -> bool:
+    """Helper used to determine if a window is stacked with 1 or more other windows in a column"""
+
+    # No columns for floating windows so skip checks
+    if target_window_data["is_floating"]:
+        return False
+
+    # Count how many windows have the same target workspace/column position
+    target_wspace_id = target_window_data["workspace_id"]
+    target_column = target_window_data["layout"]["pos_in_scrolling_layout"][0]
+    num_same_col = 0
+    for other_win in all_windows_data:
+        if other_win["is_floating"] or other_win["workspace_id"] != target_wspace_id:
+            continue
+        if other_win["layout"]["pos_in_scrolling_layout"][0] == target_column:
+            num_same_col += 1
+        if num_same_col > 1:
+            break
+
+    return num_same_col > 1
+
+
+def pull_window(target_window_data: dict, all_windows_data: list[dict]) -> None:
     """Brings a target window toward where the user is currently looking"""
 
     # For convenience
@@ -158,6 +180,10 @@ def pull_window(target_window_data: dict) -> None:
     if target_window_data["is_floating"]:
         return
 
+    # Un-stack the window before pulling, so we only pull the target (IPC only allows pulling a full column)
+    if check_is_stacked_in_column(target_window_data, all_windows_data):
+        run_command("niri msg action consume-or-expel-window-left")
+
     # Move the target window next to where we're looking (if it isn't already there)
     orig_column_idx = orig_win["layout"]["pos_in_scrolling_layout"][0]
     dest_column_idx = orig_column_idx + 1
@@ -175,7 +201,7 @@ def pull_window(target_window_data: dict) -> None:
     return
 
 
-def push_window(target_window_data: dict, scratchpad_name: str | None = None) -> None:
+def push_window(target_window_data: dict, all_windows_data: list[dict], scratchpad_name: str | None = None) -> None:
     """
     Pushs a target window to the end of the current workspace, or to the next workspace if floating.
     If a scratchpad (workspace) name is provided, then push windows to that workspace instead.
@@ -199,6 +225,10 @@ def push_window(target_window_data: dict, scratchpad_name: str | None = None) ->
         orig_win = get_focused_window()
         final_column_idx = orig_win["layout"]["pos_in_scrolling_layout"][0] if orig_win is not None else 1
         focus_window(target_window_data["id"])
+
+    # Un-stack the window before pushing if needed (IPC only allows pushing a full column)
+    if check_is_stacked_in_column(target_window_data, all_windows_data):
+        run_command("niri msg action consume-or-expel-window-right")
 
     # Move the target window to the end of the workspace then snap back to where we were looking
     run_command("niri msg action move-column-to-last")
@@ -230,7 +260,8 @@ if enable_appid_inspection:
 # %% Main code
 
 # Check if the target app-id is already opened
-target_win_list = [w for w in get_windows_list() if w["app_id"].lower() == TARGET_APP_ID.lower()]
+all_win_list = get_windows_list()
+target_win_list = [w for w in all_win_list if w["app_id"].lower() == TARGET_APP_ID.lower()]
 
 # Handle script arg modifiers
 if ALWAYS_SPAWN:
@@ -262,9 +293,9 @@ if num_already_open == 0:
 if num_already_open == 1:
     target_win = target_win_list[0]
     if target_win["is_focused"] and ENABLE_PUSH:
-        push_window(target_win, SCRATCHPAD)
+        push_window(target_win, all_win_list, SCRATCHPAD)
     elif ENABLE_PULL:
-        pull_window(target_win)
+        pull_window(target_win, all_win_list)
     else:
         focus_window(target_win["id"])
     quit()
