@@ -148,13 +148,14 @@ Pressing this keybinding while focusing a window will give you a notification th
 
 ## niri_workspace_helper.py
 
-This is a simple script meant to augment the `focus-workspace` commands normally bound to `Mod+1`, `Mod+2`, `Mod+3` etc. When already on the target workspace, this script will jump focus to the first column (or last, if already on the first). This removes the need for dedicated [Mod+Home/Mod+End](https://github.com/YaLTeR/niri/blob/e837e39623457dc5ad29c34a5ce4d4616e5fbf1e/resources/default-config.kdl#L427-L428) keybinds, for example.
+This is a simple script meant to augment the `focus-workspace` commands normally bound to `Mod+1`, `Mod+2`, `Mod+3` etc. It behaves like the original command to move between workspaces, but when already on the focused workspace, this script will toggle the niri overview.
 
-To use this script, replace the existing `focus-workspace #` keybinds with a call to this script, for example:
+To use this script, replace the existing [focus-workspace](https://github.com/YaLTeR/niri/blob/2776005c5fc4fbb85636672213b8b84a319dfb01/resources/default-config.kdl#L516-L524) keybinds with a call to this script, for example:
 ```bash
 Mod+1 { spawn "python3" "/path/to/niri_workspace_helper.py" "1"; }
 ```
 
+As an alternative to toggling the overview, the `--jump` or `-j` flag can be added to instead jump to the first or last column of the workspace (when already on the focused workspace). This removes the need for dedicated [Mod+Home/Mod+End](https://github.com/YaLTeR/niri/blob/e837e39623457dc5ad29c34a5ce4d4616e5fbf1e/resources/default-config.kdl#L427-L428) keybinds, for example.
 
 <br>
 

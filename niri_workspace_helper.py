@@ -23,10 +23,17 @@ def get_focused_window() -> dict:
 
 
 # Handle target workspace arg
-parser = argparse.ArgumentParser(description="Move to target workspace or jump to start if already on it")
+parser = argparse.ArgumentParser(description="Move to target workspace or toggle overview if already on it")
 parser.add_argument("workspace", nargs=1, type=int, help="Target workspace")
+parser.add_argument(
+    "-j",
+    "--jump",
+    action="store_true",
+    help="If enabled, jump to first/last column (instead of toggling overview) if already on the target workspace",
+)
 args = parser.parse_args()
 target_wspace = args.workspace[0]
+use_overview_toggle = not args.jump
 
 # Get currently focused workspace
 curr_wspace = None
@@ -35,9 +42,11 @@ for wspace in get_workspaces_info():
         curr_wspace = wspace["idx"]
         break
 
-# Jump to target workspace or first/last-column if already on workspace
+# Focus target workspace or (if already focused) toggle overview or cycle first-last column
 if curr_wspace != target_wspace:
     run_command(f"niri msg action focus-workspace {target_wspace}")
+elif use_overview_toggle:
+    run_command("niri msg action toggle-overview")
 else:
     # Drop focus from floating windows (focus first/last doesn't work otherwise)
     curr_win = get_focused_window()
