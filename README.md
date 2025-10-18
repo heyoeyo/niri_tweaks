@@ -159,6 +159,20 @@ As an alternative to toggling the overview, the `--jump` or `-j` flag can be add
 
 <br>
 
+## niri_peekaboo.py
+
+This is an experimental script for 'peeking' at nearby windows without needing to scroll to view them, meant for quick interactions. It's intended for use when interacting with a full width/maximized window. Currently, use with a fullscreen or non-full-width window doesn't work as expected and may require some IPC updates to properly support.
+
+The script is meant to be bound to a keypress in your niri config:
+```bash
+Mod+P { spawn "python3" "/path/to/niri_peekaboo.py"; }
+```
+
+Running this command once will float window(s) in the column to the right and move the window(s) into view on the left. Running it again will return the floating windows back to the column on the right.
+
+
+<br>
+
 ## fuzzel_helper.sh
 
 The normal behavior of the niri application launcher ([fuzzel](https://codeberg.org/dnkl/fuzzel)) is to only open when launched. This script makes it toggle on/off, so that a single command can be used to both open and close (i.e. cancel), which seems more intuitive.
