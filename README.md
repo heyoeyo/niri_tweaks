@@ -7,6 +7,7 @@ This repo holds some basic helper scripts that can be used to modify the behavio
 - [niri_spawnjump.py](#niri_spawnjumppy)
 - [niri_window_details.sh](#niri_window_detailssh)
 - [niri_workspace_helper.py](#niri_workspace_helperpy)
+- [niri_peekaboo.py](#niri_peekaboopy)
 - [fuzzel_helper.sh](#fuzzel_helpersh)
 - [swaybg_helper.sh](#swaybg_helpersh)
 
@@ -161,14 +162,19 @@ As an alternative to toggling the overview, the `--jump` or `-j` flag can be add
 
 ## niri_peekaboo.py
 
-This is an experimental script for 'peeking' at nearby windows without needing to scroll to view them, meant for quick interactions. It's intended for use when interacting with a full width/maximized window. Currently, use with a fullscreen or non-full-width window doesn't work as expected and may require some IPC updates to properly support.
+This is an experimental script used to pull nearby windows into view as floats for quick interactions, without needing to scroll the view. This is meant for use on maximized or fullscreen windows. Non-full-width windows won't work as expected and may require some IPC updates before they can be properly supported.
 
-The script is meant to be bound to a keypress in your niri config:
+The script can be bound to a keypress in your niri config:
 ```bash
 Mod+P { spawn "python3" "/path/to/niri_peekaboo.py"; }
 ```
 
-Running this command once will float window(s) in the column to the right and move the window(s) into view on the left. Running it again will return the floating windows back to the column on the right.
+Running this command once will float window(s) in the column to the right of where you're focused and move the window(s) into view on the left. Running it again will return the floating windows back to the column on the right (e.g. offscreen).
+
+There are several configuration options which can be viewed by running (in a terminal):
+```bash
+python3 /path/to/niri_peekaboo.py --help
+```
 
 
 <br>
