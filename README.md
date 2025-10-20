@@ -149,14 +149,33 @@ Pressing this keybinding while focusing a window will give you a notification th
 
 ## niri_workspace_helper.py
 
-This is a simple script meant to augment the `focus-workspace` commands normally bound to `Mod+1`, `Mod+2`, `Mod+3` etc. It behaves like the original command to move between workspaces, but when already on the focused workspace, this script will toggle the niri overview.
+This script augments both the `focus-workspace` and `focus-workspace-up/down` commands. When replacing the `focus-workspace` command (normally bound to `Mod+1`, `Mod+2` etc.) it behaves like the original command to move between workspaces, but when already on the focused workspace, will instead toggle the niri overview.
 
-To use this script, replace the existing [focus-workspace](https://github.com/YaLTeR/niri/blob/2776005c5fc4fbb85636672213b8b84a319dfb01/resources/default-config.kdl#L516-L524) keybinds with a call to this script, for example:
+When replacing the `focus-workspace-up/down` commands, this script can be made to skip over empty workspaces or marked (e.g. hidden) workspaces as well as handle wrap-around. It can also act as a `focus-first/last` command.
+
+To use this script, replace the existing [focus-workspace](https://github.com/YaLTeR/niri/blob/2776005c5fc4fbb85636672213b8b84a319dfb01/resources/default-config.kdl#L516-L524) keybinds with a call to this script followed by a workspace index, for example:
 ```kdl
 Mod+1 { spawn "python3" "/path/to/niri_workspace_helper.py" "1"; }
 ```
 
 As an alternative to toggling the overview, the `--jump` or `-j` flag can be added to instead jump to the first or last column of the workspace (when already on the focused workspace). This removes the need for dedicated [Mod+Home/Mod+End](https://github.com/YaLTeR/niri/blob/e837e39623457dc5ad29c34a5ce4d4616e5fbf1e/resources/default-config.kdl#L427-L428) keybinds, for example.
+
+To instead cycle through workspaces, provide a keyword of `next`, `prev`, `first` or `last` instead of an index. To skip empty workspaces use `-s`. To 'hide' workspaces, list them after the `-z` flag, for example:
+```kdl
+// Next/previous
+Mod+apostrophe { spawn "python3" "/path/to/niri_workspace_helper.py" "next" "--wrap" "-z" "scratch" "invis"; }
+Mod+semicolon { spawn "python3" "/path/to/niri_workspace_helper.py" "prev" "-j" "-s"; }
+
+// First/last
+Mod+grave { spawn "python3" "/path/to/niri_workspace_helper.py" "first" "-s"; }
+Mod+backspace { spawn "python3" "/path/to/niri_workspace_helper.py" "last" "-s"; }
+```
+
+More information about the flags can be found by running the script directly (in a terminal) with `--help`:
+```bash
+python3 /path/to/niri_workspace_helper.py --help
+```
+
 
 <br>
 
