@@ -6,5 +6,5 @@ APPID=$(jq -r .app_id <<<"$NIRIJSON")
 WINID=$(jq -r .id <<<"$NIRIJSON")
 PID=$(jq -r .pid <<<"$NIRIJSON")
 
-notify-send "$TITLE" "appid: $APPID\n(winid:$WINID  pid:$PID)"
+notify-send "$TITLE" "appid: $APPID\n(winid: $WINID  pid: $PID)"
 

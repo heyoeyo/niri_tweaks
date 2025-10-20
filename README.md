@@ -1,6 +1,6 @@
 # niri tweaks
 
-This repo holds some basic helper scripts that can be used to modify the behavior of the [niri](https://github.com/YaLTeR/niri) wayland compositor.
+This repo holds some basic helper scripts that can be used to modify the behavior of the [niri](https://github.com/YaLTeR/niri) wayland compositor. The scripts are all independent of one another, so any one can be used without needing the others.
 
 #### Scripts:
 - [niri_tile_to_n.py](#niri_tile_to_npy)
@@ -71,7 +71,7 @@ This downloads the script text and pipes it straight into python to run it. Afte
 ### Permanent use
 
 To have the script always running, either clone this repo, or otherwise copy the contents of [the script](https://github.com/heyoeyo/niri_tweaks/blob/main/niri_tile_to_n.py) into a file somewhere on your machine. Then you just need to update your [niri config file](https://github.com/YaLTeR/niri/wiki/Configuration:-Introduction) (usually in `~/.config/niri/config.kdl`) to run the script on start-up:
-```bash
+```kdl
 spawn-at-startup "python3" "/path/to/niri_tile_to_n.py"
 ```
 
@@ -103,18 +103,18 @@ For example, `-w` will cause jump/cycling behavior to only search on the current
 
 To bind to a keypress, you need to add a line to the niri config. Flags for the script can be added at the end, like:
 
-```bash
+```kdl
 Mod+T { spawn "python3" "/path/to/niri_spawnjump.py" "alacritty" "-w" "-p" "-s"; }
 ```
 
 For flatpaks, use the entire run command:
 
-```bash
+```kdl
 Mod+B { spawn "python3" "/path/to/niri_spawnjump.py" "flatpak run app.zen_browser.app"; }
 ```
 By default, this will search for existing instances based on the `app-id` that niri assigns, assuming this matches the name used to run the application (e.g. `alacritty` or `app.zen_browser.app`). Some applications seem to use a different name, like the flatpak for Chromium, which has an `app-id` of `chromium-browser`. For these applications, the `app-id` can be passed as a second argument:
 
-```bash
+```kdl
 Mod+B { spawn "python3" "/path/to/niri_spawnjump.py" "flatpak run org.chromium.Chromium" "chromium-browser"; }
 ```
 
@@ -124,7 +124,7 @@ To help figure out the `app-id` for these sorts of applications, run this script
 
 The script includes support for providing a 'scratchpad' workspace name (use `-t workspacename`), this will auto-enable `--push` and `--pull` and will push windows to the provided workspace name, instead of pushing them to the end of the current workspace:
 
-```bash
+```kdl
 Mod+T { spawn "python3" "/path/to/niri_spawnjump.py" "alacritty" "-t" "scratch"; }
 ```
 
@@ -138,7 +138,7 @@ Your niri config needs to include a line like: `workspace "scratch"` for this co
 This script is mostly used for debugging. It prints out basic window information from calling `niri msg focused-window` into a notification. For example, this can print out the `app-id` of a window, making it useful for setting up window rules.
 
 A keybinding can be added to the niri config file to trigger this:
-```bash
+```kdl
 Mod+Backslash repeat=false { spawn "bash" "/path/to/niri_window_details.sh"; }
 ```
 
@@ -152,7 +152,7 @@ Pressing this keybinding while focusing a window will give you a notification th
 This is a simple script meant to augment the `focus-workspace` commands normally bound to `Mod+1`, `Mod+2`, `Mod+3` etc. It behaves like the original command to move between workspaces, but when already on the focused workspace, this script will toggle the niri overview.
 
 To use this script, replace the existing [focus-workspace](https://github.com/YaLTeR/niri/blob/2776005c5fc4fbb85636672213b8b84a319dfb01/resources/default-config.kdl#L516-L524) keybinds with a call to this script, for example:
-```bash
+```kdl
 Mod+1 { spawn "python3" "/path/to/niri_workspace_helper.py" "1"; }
 ```
 
@@ -165,7 +165,7 @@ As an alternative to toggling the overview, the `--jump` or `-j` flag can be add
 This is an experimental script used to pull nearby windows into view as floats for quick interactions, without needing to scroll the view. This is meant for use on maximized or fullscreen windows. Non-full-width windows won't work as expected and may require some IPC updates before they can be properly supported.
 
 The script can be bound to a keypress in your niri config:
-```bash
+```kdl
 Mod+P { spawn "python3" "/path/to/niri_peekaboo.py"; }
 ```
 
@@ -186,7 +186,7 @@ The normal behavior of the niri application launcher ([fuzzel](https://codeberg.
 ### Usage
 
 You need to add (or most likely [replace](https://github.com/YaLTeR/niri/blob/e837e39623457dc5ad29c34a5ce4d4616e5fbf1e/resources/default-config.kdl#L366)) a keybinding in the niri config file to run this script, for example:
-```bash
+```kdl
 Mod+0 repeat=false { spawn "bash" "/path/to/fuzzel_helper.sh"; }
 ```
 
@@ -209,25 +209,20 @@ The following keyd config maps 'tapping Super' to be equivalent to 'Super+0', al
 # Seems able to catch non-keyboard events too...?
 *
 
-
 [global]
 
-# Max milliseconds before ignoring key release
+# Holding a key for longer than this (in ms) won't count as a tap
 overload_tap_timeout = 300;
-
 
 [main]
 
-# Make super key tap act like a super+key combo
+# Make super key tap act like a super+0 combo
 leftmeta = overload(meta, macro(leftmeta+0))
-# Overload syntax seems to be:
+# Syntax seems to be:
 #   key_being_altered = overload(behavior when held, behavior when tapped)
 
 # Make the 'right menu' key act like the super key
 compose = overload(meta, macro(leftmeta+0))
-
-# Make insert key act like the escape key
-insert = esc
 ```
 </details>
 
@@ -247,7 +242,7 @@ Using `--folder /path/to/folder`  will change the folder location from which wal
 #### Load wallpaper on start-up
 
 To have this script set a wallpaper on startup, first make sure swaybg is installed, then add the following line to your niri config:
-```bash
+```kdl
 spawn-at-startup "bash" "/path/to/swaybg_helper.sh" "-f" "/path/to/wallpapers/folder"
 ```
 
@@ -256,7 +251,7 @@ The `-f` flag can be ommited if images are placed in `~/Pictures/Wallpapers`. Ad
 #### Cycle wallpaper on keypress
 
 To cycle backgrounds on a keypress, add the following keybind:
-```bash
+```kdl
 Mod+Shift+W { spawn "bash" "/path/to/swaybg_helper.sh" "-c" "-d" "-f" "/path/to/wallpapers/folder"; }
 ```
 
