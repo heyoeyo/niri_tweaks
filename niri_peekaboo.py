@@ -22,8 +22,12 @@ parser.add_argument("-g", "--y_gap", type=int, default=0, help="y-gap between mu
 parser.add_argument(
     "-w", "--max_width_norm", type=float, default=-1, help="Max width of floated windows (value between 0 and 1)"
 )
-parser.add_argument("-u", "--fullscreen_unpeek", action="store_true", help="When un-peeking, toggle into fullscreen")
-
+parser.add_argument(
+    "-t",
+    "--toggle_fullscreen",
+    action="store_true",
+    help="Toggle fullscreen mode on use. Only enable if intending to use from true fullscreen mode, to make floats visible",
+)
 
 # For convenience
 args = parser.parse_args()
@@ -36,7 +40,7 @@ FLOAT_Y_GAP = args.y_gap
 MAX_RESIZE_WIDTH = args.max_width_norm
 LIMIT_MAX_WIDTH = MAX_RESIZE_WIDTH > 0
 PEEK_BOTHSIDES = args.both_sides
-FULLSCREEN_ON_UNPEEK = args.fullscreen_unpeek
+TOGGLE_FULLSCREEN = args.toggle_fullscreen
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -97,25 +101,26 @@ monitor_w = monitor_info.get("logical", {}).get("width", 1920)
 monitor_h = monitor_info.get("logical", {}).get("height", 1080)
 monitor_area = monitor_w * monitor_h
 
-# Try to figure out if window is fullscreen/maximized (IPC doesn't give this info...?)
-user_win_w, user_win_h = user_win["layout"]["window_size"]
-user_win_area = user_win_w * user_win_h
-user_win_area_norm = user_win_area / monitor_area
-is_fullscreen = user_win_area_norm > 0.99
-
-# Toggle out of fullscreen into a maximized state (floats won't show over fullscreen)
-if is_fullscreen:
-    niri_action("fullscreen-window")  # Confusing: this is a toggle *out* of fullscreen
-
-    # Make sure we're in a maximized state (not indicated by IPC...?) to mimic fullscreen
-    user_win = get_focused_window()
+# Try to figure out if window is fullscreen (IPC doesn't give this info...?) and toggle out
+if TOGGLE_FULLSCREEN:
     user_win_w, user_win_h = user_win["layout"]["window_size"]
     user_win_area = user_win_w * user_win_h
     user_win_area_norm = user_win_area / monitor_area
-    is_maximized = user_win_area_norm > 0.75
-    if not is_maximized:
-        niri_action("maximize-column")
-    pass
+    is_fullscreen = user_win_area_norm > 0.99
+
+    # Switch to maximized state to mimic fullscreen while allowing floats
+    if is_fullscreen:
+        niri_action("fullscreen-window")  # Confusing: this is a toggle *out* of fullscreen
+
+        # Make sure we're in a maximized state (not indicated by IPC...?) to mimic fullscreen
+        user_win = get_focused_window()
+        user_win_w, user_win_h = user_win["layout"]["window_size"]
+        user_win_area = user_win_w * user_win_h
+        user_win_area_norm = user_win_area / monitor_area
+        is_maximized = user_win_area_norm > 0.75
+        if not is_maximized:
+            niri_action("maximize-column")
+        pass
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -141,8 +146,8 @@ if len(float_win_list) > 0:
     if not PEEK_RIGHT:
         niri_action("move-column-right")
 
-    # Fullscreen user if needed (can help undo the move to max/non-fullscreen needed for floating windows)
-    if FULLSCREEN_ON_UNPEEK:
+    # Fullscreen user if needed (used to undo the move to max/non-fullscreen needed for floating windows)
+    if TOGGLE_FULLSCREEN:
         niri_action("fullscreen-window")
 
     quit()
