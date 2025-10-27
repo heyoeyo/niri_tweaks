@@ -261,7 +261,7 @@ if enable_appid_inspection:
 
 # Check if the target app-id is already opened
 all_win_list = get_windows_list()
-target_win_list = [w for w in all_win_list if w["app_id"].lower() == TARGET_APP_ID.lower()]
+target_win_list = [w for w in all_win_list if str(w["app_id"]).lower() == TARGET_APP_ID.lower()]
 
 # Handle script arg modifiers
 if ALWAYS_SPAWN:
