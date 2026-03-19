@@ -80,6 +80,12 @@ parser.add_argument(
     action="store_false" if default_debug_data else "store_true",
     help="Enable event data printing, for debugging",
 )
+parser.add_argument(
+    "-iw",
+    type=int,
+    action="append",
+    help="Ignore workspace with this id (can be specified multiple times)"
+)
 
 # Get script configs
 args, _ = parser.parse_known_args()
@@ -92,7 +98,7 @@ APPLY_TO_MOVED_WINDOWS = args.m
 USE_MAX_TO_EDGES = args.maximize_to_edges
 ENABLE_EVENT_NAME_DEBUG_PRINT = args.dn
 ENABLE_EVENT_DATA_DEBUG_PRINT = args.dd
-
+IGNORED_WORKSPACE_IDS = args.iw
 
 # ---------------------------------------------------------------------------------------------------------------------
 # %% Data types
@@ -550,8 +556,14 @@ try:
             if newest_window_data["is_maximized"] or newest_window_data["is_floating"]:
                 continue
 
-            # Don't bother trying to re-arrange/tile if we already have more than 'N' windows
             curr_wspace_id = newest_window_data["workspace_id"]
+
+            # Don't act on ignored workspaces
+            if IGNORED_WORKSPACE_IDS and curr_wspace_id and (curr_wspace_id in IGNORED_WORKSPACE_IDS):
+                print(f"Ignored event on workspace {curr_wspace_id}")
+                continue
+
+            # Don't bother trying to re-arrange/tile if we already have more than 'N' windows
             curr_tile_wins = get_windows_by_conditions(win_state, workspace_id=curr_wspace_id, is_floating=False)
             num_tile_wins = len(curr_tile_wins)
             if num_tile_wins == 0 or num_tile_wins > TILE_TO_N:
