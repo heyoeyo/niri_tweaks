@@ -385,7 +385,7 @@ niri_action = NiriActions(skt_path)
 
 # Sanity check. Make sure we have the right version
 is_version_ok, version_resp = niri_reader.request("Version")
-expected_version, actual_version = "25.11 (b35bcae)", version_resp.get("Version", "unknown")
+expected_version, actual_version = "26.04 (8ed0da4)", version_resp.get("Version", "unknown")
 if actual_version != expected_version:
     print(
         "",
@@ -534,6 +534,10 @@ try:
             # Not doing anything with config...
             pass
 
+        elif evt_name == "CastsChanged":
+            #Not doing anything with screencasts...
+            pass
+            
         else:
             print("Unknown event:", evt_name)
 
