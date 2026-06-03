@@ -10,6 +10,7 @@ This repo holds some basic helper scripts that can be used to modify the behavio
 - [niri_peekaboo.py](#niri_peekaboopy)
 - [niri_overview_bind.py](#niri_overview_bindpy)
 - [niri_parse_keybinds.py](#niri_parse_keybindspy)
+- [niri_search_window.py](#niri_search_windowpy)
 - [fuzzel_helper.sh](#fuzzel_helpersh)
 - [swaybg_helper.sh](#swaybg_helpersh)
 
@@ -245,6 +246,18 @@ This keybind will launch fuzzel with a list of searchable keybinds (only the `-d
 For faster/less error-prone parsing, it can be helpful to split your `binds {...}` into a separate kdl file, using the new (v25.11) config [include](https://yalter.github.io/niri/Configuration%3A-Include.html) functionality of niri, though you will need to provide the `-i /path/to/keybinds.kdl` flag in this case.
 
 Also worth noting: the call to fuzzel can be replaced with the [fuzzel helper](https://github.com/heyoeyo/niri_tweaks?tab=readme-ov-file#fuzzel_helpersh) script so that the fuzzy-find search is toggled on/off with the same keybind.
+
+<br>
+
+## niri_search_window.py
+
+This script is meant to help quickly navigationg to windows across workspaces. When called it uses [fuzzel](https://codeberg.org/dnkl/fuzzel) to fuzzy search all Niri windows. Once a window is selected Niri will switch to it.
+
+```kdl
+Mod+Slash { spawn-sh "python3 /path/to/niri_search_window.py"; }
+```
+
+Currently this does not support any commandline arguments.
 
 <br>
 
