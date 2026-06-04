@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+# niri_search_window.py
+# This script is meant to help quickly navigationg to windows across workspaces. When called it uses [fuzzel](https://codeberg.org/dnkl/fuzzel) to fuzzy search all Niri windows. Once a window is selected Niri will switch to it.
+# ```kdl
+# Mod+Slash { spawn-sh "python3 /path/to/niri_search_window.py"; }
+# ```
+# Currently this does not support any commandline arguments.
+
 from dataclasses import dataclass
 import io
 import socket
@@ -11,6 +18,12 @@ import re
 from typing import TypedDict, Self, TypeAlias, Literal
 
 #region typechecking helpers
+
+# This is just for getting type hints when creating the requests
+# to send to niri With NiriSocket.request and not technically needed.
+# It's also missing many of the possible actions since they aren't
+# needed by this script.
+
 IdField= TypedDict("IdField",{"id":int})
 NiriFocusWindowAction = TypedDict("NiriFocusWindowAction",
     {"FocusWindow":IdField})
@@ -38,6 +51,8 @@ NiriRequest: TypeAlias =\
     NiriActionRequest |\
     NiriOutputRequest
 
+# Typehints for the result of the Windows command.
+# Also not technically needed and incomplete
 class NiriWindow(TypedDict):
     id: str
     title: str
@@ -51,8 +66,18 @@ class NiriWindow(TypedDict):
 class NiriException(BaseException):
     message: str
 
+
 class NiriSocket:
-    """helper used to read & write json messages to a niri socket connection"""
+    """
+    Wrapper class for providing an abstraction around sending requests
+    to Niri via sockets.
+
+    Parameters
+    ----------
+    socket_path: str | None = None
+        Path to the Niri socket. None means it will try to read it from
+        the NIRI_SOCKET environment variable.
+    """
     _sock: socket.socket
     _file: io.TextIOWrapper
 
@@ -64,8 +89,11 @@ class NiriSocket:
 
         self._sock = socket.socket(socket.AF_UNIX,socket.SOCK_STREAM)
         self._sock.connect(socket_path)
+        # The File wrapper is not technically needed but provides
+        # a more convenient api around reading and writing to the socket.
         self._file= self._sock.makefile("rw")
 
+    # enter and exit are just for using it as a context manager.
     def __enter__(self) -> Self:
         return self
 
@@ -76,6 +104,16 @@ class NiriSocket:
         self._sock.close()
 
     def request(self,request: NiriRequest) -> dict:
+        """
+        Send a request to niri. Information about different requests can be found
+        in the niri_ipc crate documentation.
+        <https://niri-wm.github.io/niri/niri_ipc/enum.Request.html>
+
+        Raises
+        ------
+        NiricException
+            If the attempt to communicate with Niri was unsuccesfull.
+        """
         self._file.write(f"{json.dumps(request)}\n")
         self._file.flush()
         ret = json.loads(self._file.readline())
@@ -87,6 +125,14 @@ class NiriSocket:
         return success
 
     def windows(self) -> list[NiriWindow]:
+        """
+        Get all windows from niri
+
+        Raises
+        ------
+        NiricException
+            If the attempt to communicate with Niri was unsuccesfull.
+        """
         return list(map(
             lambda w: NiriWindow(w),
             self.request("Windows")\
@@ -94,30 +140,44 @@ class NiriSocket:
         ))
 
     def action(self,action: NiriAction):
+        """
+        Send an action type request to niri. This is just a convenient
+        wrapper around the request function.
+
+        Raises
+        ------
+        NiricException
+            If the attempt to communicate with Niri was unsuccesfull.
+        """
         self.request({"Action": action})
-        pass
 
     @staticmethod
     def get_niri_socket_path() -> str | None:
         return os.environ.get("NIRI_SOCKET")
 
-def error_msg(msg: str):
+def error_msg(message: str):
+    """
+    Use notify-send to notify the user of any Errors.
+    """
     notify_title = "Windowsearch Error!"
-    subprocess.run(["notify-send", notify_title, msg])
+    subprocess.run(["notify-send", notify_title, message])
 
 def main():
     try:
         with NiriSocket() as con:
+            # get all windows and convert them to readable lines for fuzzel
             windows = [
                 f"{w.get("title")} ({w.get("id")})" for w in con.windows()
             ]
             if not windows:
                 error_msg("Didn't find any windows.")            
+            # Allow user to select window via fuzzel
             fuzzel = subprocess.run(
                ["fuzzel","--dmenu"],
                input="\n".join(windows),
                text=True,
                capture_output=True)
+            # If a window was selected get the id and ask niri to switch to it
             if match := re.match(r"^.* \((\d*)\)$",fuzzel.stdout):
                 window_id = int(match.group(1))
                 con.action({"FocusWindow": {"id": window_id}})
