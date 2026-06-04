@@ -15,7 +15,7 @@ import os
 import subprocess
 import json
 import re
-from typing import TypedDict, Self, TypeAlias, Literal
+from typing import TypedDict, Self, TypeAlias, Literal, Any
 
 #region typechecking helpers
 
@@ -23,43 +23,42 @@ from typing import TypedDict, Self, TypeAlias, Literal
 # to send to niri With NiriSocket.request and not technically needed.
 # It's also missing many of the possible actions since they aren't
 # needed by this script.
+class Niri:
+    _IdField= TypedDict("_IdField",{"id":int})
+    _FocusWindow = TypedDict("_FocusWindow",
+        {"FocusWindow":_IdField})
+    _FocusWindowPrevious= TypedDict("_FocusWindowPrevious",
+        {"FocusWindowPrevious":dict})
+    Action: TypeAlias = _FocusWindow | _FocusWindowPrevious
 
-IdField= TypedDict("IdField",{"id":int})
-NiriFocusWindowAction = TypedDict("NiriFocusWindowAction",
-    {"FocusWindow":IdField})
-NiriAction: TypeAlias = NiriFocusWindowAction #TODO
-
-NiriActionRequest =  TypedDict("NiriActionRequest",
-    {"Action":NiriAction})
-NiriOutputRequest =  TypedDict("NiriOutputRequest",{"Output":dict})
-NiriRequest: TypeAlias =\
-    Literal["Windows"] |\
-    Literal["Version"] |\
-    Literal["Outputs"] |\
-    Literal["Workspaces"] |\
-    Literal["Windows"] |\
-    Literal["Layers"] |\
-    Literal["KeyboardLayouts"] |\
-    Literal["FocusedOutput"] |\
-    Literal["FocusedWindow"] |\
-    Literal["PickWindow"] |\
-    Literal["PickColor"] |\
-    Literal["EventStream"] |\
-    Literal["ReturnError"] |\
-    Literal["OverviewState"] |\
-    Literal["Casts"] |\
-    NiriActionRequest |\
-    NiriOutputRequest
+    _ActionRequest =  TypedDict("_ActionRequest",
+        {"Action":Action})
+    _OutputRequest =  TypedDict("_OutputRequest",
+        {"Output":dict})
+    Request: TypeAlias =\
+        Literal["Windows"] | Literal["Version"] |\
+        Literal["Outputs"] | Literal["Workspaces"] |\
+        Literal["Windows"] | Literal["Layers"] |\
+        Literal["KeyboardLayouts"] | Literal["FocusedOutput"] |\
+        Literal["FocusedWindow"] | Literal["PickWindow"] |\
+        Literal["PickColor"] | Literal["EventStream"] |\
+        Literal["ReturnError"] | Literal["OverviewState"] |\
+        Literal["Casts"] | _ActionRequest | _OutputRequest
 
 # Typehints for the result of the Windows command.
 # Also not technically needed and incomplete
-class NiriWindow(TypedDict):
-    id: str
-    title: str
-    add_id: str
-    pid: str
-    is_floating: bool
-
+    class Response:
+        class Window(TypedDict):
+            id: int
+            title: str
+            add_id: str
+            pid: int
+            workspace_id: int
+            is_focused: bool
+            is_floating: bool
+            is_urgent: bool
+            layout: Any
+            focus_timestamp: Any
 #endregion
 
 @dataclass
@@ -103,7 +102,7 @@ class NiriSocket:
     def close(self):
         self._sock.close()
 
-    def request(self,request: NiriRequest) -> dict:
+    def request(self,request: Niri.Request) -> dict:
         """
         Send a request to niri. Information about different requests can be found
         in the niri_ipc crate documentation.
@@ -124,7 +123,7 @@ class NiriSocket:
 
         return success
 
-    def windows(self) -> list[NiriWindow]:
+    def windows(self) -> list[Niri.Response.Window]:
         """
         Get all windows from niri
 
@@ -134,12 +133,12 @@ class NiriSocket:
             If the attempt to communicate with Niri was unsuccesfull.
         """
         return list(map(
-            lambda w: NiriWindow(w),
+            lambda w: Niri.Response.Window(w),
             self.request("Windows")\
             .get("Windows",{})
         ))
 
-    def action(self,action: NiriAction):
+    def action(self,action: Niri.Action):
         """
         Send an action type request to niri. This is just a convenient
         wrapper around the request function.
@@ -174,11 +173,21 @@ def main():
             # Allow user to select window via fuzzel
             fuzzel = subprocess.run(
                ["fuzzel","--dmenu"],
-               input="\n".join(windows),
+               input="\n".join(
+                   ["Previous Window"] +
+                   windows
+               ),
                text=True,
                capture_output=True)
+            # Nothing was selected
+            if fuzzel.returncode != 0:
+                raise SystemExit()
+            # Handle the special Previous window action
+            if fuzzel.stdout.strip() == "Previous Window":
+                print("focusing previous")
+                con.action( {"FocusWindowPrevious": {}})
             # If a window was selected get the id and ask niri to switch to it
-            if match := re.match(r"^.* \((\d*)\)$",fuzzel.stdout):
+            elif match := re.match(r"^.* \((\d*)\)$",fuzzel.stdout):
                 window_id = int(match.group(1))
                 con.action({"FocusWindow": {"id": window_id}})
     except Exception as e:
