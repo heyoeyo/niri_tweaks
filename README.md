@@ -4,6 +4,7 @@ This repo holds some basic helper scripts that can be used to modify the behavio
 
 #### Scripts:
 - [niri_tile_to_n.py](#niri_tile_to_npy)
+- [niri_custom_layout.py](#niri_custom_layoutpy)
 - [niri_spawnjump.py](#niri_spawnjumppy)
 - [niri_window_details.sh](#niri_window_detailssh)
 - [niri_workspace_helper.py](#niri_workspace_helperpy)
@@ -89,6 +90,47 @@ python3 niri_tile_to_n.py --help
 ```
 
 The script itself is one big (ugly) python file, but should be easy to edit if you want more specific customizations. Most of the script is dedicated to listening to the niri IPC, while the [last 50 lines](https://github.com/heyoeyo/niri_tweaks/blob/d4f64bf4d79407f3cb70283392aadfb96aa240ff/niri_tile_to_n.py#L522-L568) or so hold all of the custom windowing logic (so hack away here if you want some more custom behavior).
+
+
+<br>
+
+## niri_custom_layout.py
+
+This script allows for quickly forcing windows into a custom layout using a keypress.
+
+To use the script, you need to add a line to the niri config to trigger it with a keypress, like:
+
+```kdl
+Mod+A { spawn-sh "python3 /path/to/niri_custom_layout.py"; }
+```
+
+By default this will arrange the first column of windows into 2 rows, and the next column into 3 (assuming 5 windows are available). Integer values can be added to the end of this command to create different layouts. The number of integers sets the number of columns and each integer controls how many rows to use per column. For example adding `2 3 4 5` would produce a layout with 4 columns, the first having 2 rows, the next having 3, then 4 and finally 5 rows. There are a number of customization flags that can be found by running the script in a terminal:
+
+```bash
+python3 niri_custom_layout.py --help
+```
+
+Some of the flags allow for customizing both the window width and heights. For example:
+
+```kdl
+Mod+A { spawn-sh "python3 /path/to/niri_custom_layout.py 2 2 -w 75 25 -r 75 25 0 0 -uw 50"; }
+```
+
+This gives an uneven 2x2 layout:
+```
+┌──────────┐┌──┐
+│          ││  │
+│          ││  │
+│          │└──┘
+│          │┌──┐
+└──────────┘│  │
+┌──────────┐│  │
+└──────────┘└──┘
+```
+
+
+By default, triggering the script when windows are already in the correct layout will 'unstack' them, though this can be disabled (see the `--disable_unstack` flag).
+
 
 <br>
 
