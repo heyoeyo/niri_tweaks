@@ -13,6 +13,7 @@ This repo holds some basic helper scripts that can be used to modify the behavio
 - [niri_search_window.py](#niri_search_windowpy)
 - [fuzzel_helper.sh](#fuzzel_helpersh)
 - [swaybg_helper.sh](#swaybg_helpersh)
+- [mute_on_startup.sh](#mute_on_startupsh)
 
 
 ## niri_tile_to_n.py
@@ -88,7 +89,6 @@ python3 niri_tile_to_n.py --help
 ```
 
 The script itself is one big (ugly) python file, but should be easy to edit if you want more specific customizations. Most of the script is dedicated to listening to the niri IPC, while the [last 50 lines](https://github.com/heyoeyo/niri_tweaks/blob/d4f64bf4d79407f3cb70283392aadfb96aa240ff/niri_tile_to_n.py#L522-L568) or so hold all of the custom windowing logic (so hack away here if you want some more custom behavior).
-
 
 <br>
 
@@ -339,3 +339,16 @@ Mod+Shift+W { spawn "bash" "/path/to/swaybg_helper.sh" "-c" "-d" "-f" "/path/to/
 
 Again, `-f` can be omitted as can `-d` if having a delay isn't a concern.
 
+<br>
+
+## mute_on_startup.sh
+
+Super simple script that's just meant to auto-mute audio on startup. Helps avoid jump scares!
+
+To use this, add a start-up line to your niri config file (e.g. `~/.config/niri/config.kdl`):
+
+```kdl
+spawn-at-startup "bash" "/path/to/mute_on_startup.sh"
+```
+
+This also resets the volume to 25%, though this can easily be changed if needed.
