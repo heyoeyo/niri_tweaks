@@ -34,22 +34,21 @@ parser.add_argument(
     "-w",
     "--column_width_pcts",
     nargs="*",  # means: 0 or more args
-    type=int,
-    default=-1,
+    type=float,
     help="Set column width percents. Can provide values for each column. If flag is set with no values, will use equal sizing",
 )
 parser.add_argument(
     "-r",
     "--row_height_pcts",
     nargs="+",  # means: 1 or more args
-    type=int,
+    type=float,
     default=None,
     help="(Advanced) Set custom row height percents. Must provide 1 number for each window in layout. Use 0 for no change",
 )
 parser.add_argument(
     "-uw",
     "--unstack_width_pct",
-    type=int,
+    type=float,
     default=None,
     help="Sets the width to use when unstacking windows (no effect if unstacking is disabled/unused)",
 )
@@ -118,11 +117,11 @@ def notify(message: str, exit_script: bool = True) -> None:
 # ---------------------------------------------------------------------------------------------------------------------
 # %% Parse layout info
 
-# Handle widths not set (-1) vs. set but with no values (None)
-if COLUMN_WIDTH_PCTS is -1:
+# Handle widths not set (None) vs. set but with no values (empty list)
+if COLUMN_WIDTH_PCTS is None:
     COLUMN_WIDTH_PCTS = [None]
-elif COLUMN_WIDTH_PCTS is None:
-    COLUMN_WIDTH_PCTS = [round(100 / len(ROWS_PER_COLUMN))]
+elif len(COLUMN_WIDTH_PCTS) == 0:
+    COLUMN_WIDTH_PCTS = [100 / len(ROWS_PER_COLUMN)]
 
 # For sanity, make sure we get list inputs
 COLUMN_WIDTH_PCTS = [COLUMN_WIDTH_PCTS] if isinstance(COLUMN_WIDTH_PCTS, int) else COLUMN_WIDTH_PCTS
@@ -286,9 +285,8 @@ for target_row_idx, win_info in zip(flat_row_idx_sequence, adjust_win_info_list)
 # ---------------------------------------------------------------------------------------------------------------------
 # %% Adjust width/height
 
-# Prevent attempts to repeat-resizing if nothing changed (can cause especially weird effects with row-resizing)
-if no_window_change and not need_unstack_reset:
-    need_width_adjustment = False
+# Prevent attempts to repeat-row-resizing if nothing changed (and we aren't going to unstack)
+if no_window_change and not ENABLE_UNSTACK_TOGGLE:
     need_height_adjustment = False
 
 if need_width_adjustment:
@@ -302,7 +300,7 @@ if need_width_adjustment:
 
     # Set width of every window, so that we properly handle resets if needed
     for win_info, win_width_pct in zip(layout_win_info_list, win_width_pcts):
-        if col_width_pct is None:
+        if win_width_pct is None:
             continue
         run_command(f"niri msg action set-window-width --id {win_info['id']} {win_width_pct}%")
 
