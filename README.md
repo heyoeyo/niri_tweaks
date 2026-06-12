@@ -251,13 +251,13 @@ Also worth noting: the call to fuzzel can be replaced with the [fuzzel helper](h
 
 ## niri_search_window.py
 
-This script is meant to help quickly navigationg to windows across workspaces. When called it uses [fuzzel](https://codeberg.org/dnkl/fuzzel) to fuzzy search all Niri windows. Once a window is selected Niri will switch to it.
+This script acts as a text-based alternative to built-in 'alt-tab' functionality. When called it uses [fuzzel](https://codeberg.org/dnkl/fuzzel) to fuzzy search all Niri windows. Once a window is selected Niri will switch to it.
 
 ```kdl
-Mod+Slash { spawn-sh "python3 /path/to/niri_search_window.py"; }
+Alt+Tab { spawn-sh "python3 /path/to/niri_search_window.py"; }
 ```
 
-Currently this does not support any commandline arguments.
+Note that the built-in graphical alt-tab functionality is available on both `Alt+Tab` and `Mod+Tab`, so it's possible to replace one shortcut with this script while keeping the built-in option on the other.
 
 <br>
 
