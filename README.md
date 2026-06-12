@@ -12,6 +12,7 @@ This repo holds some basic helper scripts that can be used to modify the behavio
 - [niri_overview_bind.py](#niri_overview_bindpy)
 - [niri_parse_keybinds.py](#niri_parse_keybindspy)
 - [niri_search_window.py](#niri_search_windowpy)
+- [niri_unstack_all.py](#niri_unstack_allpy)
 - [fuzzel_helper.sh](#fuzzel_helpersh)
 - [swaybg_helper.sh](#swaybg_helpersh)
 - [mute_on_startup.sh](#mute_on_startupsh)
@@ -300,6 +301,18 @@ Alt+Tab { spawn-sh "python3 /path/to/niri_search_window.py"; }
 ```
 
 Note that the built-in graphical alt-tab functionality is available on both `Alt+Tab` and `Mod+Tab`, so it's possible to replace one shortcut with this script while keeping the built-in option on the other.
+
+<br>
+
+## niri_unstack_all.py
+
+Basic helper script used to unstack all columns on a workspace. It can also be used to cycle [preset widths](https://github.com/niri-wm/niri/blob/6f1a2c5f0e8274223d4204b1f8d6f7f91538967e/resources/default-config.kdl#L125) on all windows. Bind to a keypress using:
+
+```kdl
+Mod+Z { spawn-sh "python3 /path/to/niri_unstack_all.py"; }
+```
+
+Include the `-c` flag to cycle all column widths or `-c 25` to set all columns to a 25% width (or any other proportion). The `-r` flag can be added to reset all window heights.
 
 <br>
 
