@@ -17,6 +17,7 @@ This repo holds some basic helper scripts that can be used to modify the behavio
 - [swaybg_helper.sh](#swaybg_helpersh)
 - [mute_on_startup.sh](#mute_on_startupsh)
 
+Scripts that start with `niri_` make use of the [niri IPC](https://github.com/niri-wm/niri/wiki/IPC) in some way.
 
 ## niri_tile_to_n.py
 
@@ -97,9 +98,7 @@ The script itself is one big (ugly) python file, but should be easy to edit if y
 
 ## niri_custom_layout.py
 
-This script allows for quickly forcing windows into a custom layout using a keypress.
-
-To use the script, you need to add a line to the niri config to trigger it with a keypress, like:
+This script allows for quickly forcing windows into a custom layout using a keypress. You can add a line to the niri config to trigger it with a keypress, like:
 
 ```kdl
 Mod+A { spawn-sh "python3 /path/to/niri_custom_layout.py"; }
@@ -111,22 +110,23 @@ By default this will arrange the first column of windows into 2 rows, and the ne
 python3 niri_custom_layout.py --help
 ```
 
-Some of the flags allow for customizing both the window width and heights. For example:
+Some of the flags allow for customizing both the window width and heights. For example, adding the `-w` flag will auto-scale the column widths to fit on screen, regardless of the number of columns. It's also possible to set per column/window sizing, like with the following command:
 
 ```kdl
-Mod+A { spawn-sh "python3 /path/to/niri_custom_layout.py 2 2 -w 75 25 -r 75 25 0 0 -uw 50"; }
+Mod+A { spawn-sh "python3 /path/to/niri_custom_layout.py 3 2 3 -w 25 50 25 -r 25 25 50 80 20 0 0 0 -a l -uw 50"; }
 ```
 
-This gives an uneven 2x2 layout:
+This would produce the following layout (assuming 8 windows are available!):
 ```
-┌──────────┐┌──┐
-│          ││  │
-│          ││  │
-│          │└──┘
-│          │┌──┐
-└──────────┘│  │
-┌──────────┐│  │
-└──────────┘└──┘
+┌───┐┌────────────┐┌───┐
+└───┘│            ││   │
+┌───┐│            │└───┘
+└───┘│            │┌───┐
+┌───┐│            ││   │
+│   ││            │└───┘
+│   │└────────────┘┌───┐
+│   │┌────────────┐│   │
+└───┘└────────────┘└───┘
 ```
 
 
@@ -294,13 +294,13 @@ Also worth noting: the call to fuzzel can be replaced with the [fuzzel helper](h
 
 ## niri_search_window.py
 
-This script acts as a text-based alternative to built-in 'alt-tab' functionality. When called it uses [fuzzel](https://codeberg.org/dnkl/fuzzel) to fuzzy search all Niri windows. Once a window is selected Niri will switch to it.
+This script acts as a text-based alternative to the built-in 'alt-tab' functionality. When called it uses [fuzzel](https://codeberg.org/dnkl/fuzzel) to fuzzy search all Niri windows. Once a window is selected Niri will switch to it.
 
 ```kdl
 Alt+Tab { spawn-sh "python3 /path/to/niri_search_window.py"; }
 ```
 
-Note that the built-in graphical alt-tab functionality is available on both `Alt+Tab` and `Mod+Tab`, so it's possible to replace one shortcut with this script while keeping the built-in option on the other.
+Note that the built-in (graphical) alt-tab functionality is available on both `Alt+Tab` and `Mod+Tab`, so it's possible to replace one shortcut with this script while keeping the built-in option on the other.
 
 <br>
 

@@ -27,8 +27,9 @@ parser.add_argument(
     "-a",
     "--anchor",
     type=str,
-    choices=["left", "right"],
-    help="Set to 'left' or 'right' to have windows stack from far sides (default: stacks from focused window)",
+    default="left",
+    choices=["left", "right", "focused", "l", "r", "f"],
+    help="Determines where windows begin stacking from (default: left)",
 )
 parser.add_argument(
     "-w",
@@ -72,10 +73,13 @@ ROWS_PER_COLUMN = args.rows_per_column
 COLUMN_WIDTH_PCTS = args.column_width_pcts
 ROW_HEIGHT_PCTS = args.row_height_pcts
 UNSTACK_WIDTH_PCT = args.unstack_width_pct
-ANCHOR_LEFT = args.anchor == "left"
-ANCHOR_RIGHT = args.anchor == "right"
+ANCHOR_STR = args.anchor
 ENABLE_UNSTACK_TOGGLE = not args.disable_unstack
 ROW_RESIZE_DELAY_MS = args.row_resize_delay_ms
+
+# Special case. If using 1 row in each column, disable unstacking automatically (doesn't make sense to use)
+if all(num_rows == 1 for num_rows in ROWS_PER_COLUMN):
+    ENABLE_UNSTACK_TOGGLE = False
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -200,10 +204,10 @@ for idx, win_info in enumerate(ordered_win_info_list):
         break
 
 # Take only the subset of window info needed to form layout
-if ANCHOR_LEFT:
+if ANCHOR_STR in ("left", "l"):
     first_win_idx = 0
     last_win_idx = NUM_LAYOUT_TILES
-elif ANCHOR_RIGHT:
+elif ANCHOR_STR in ("right", "r"):
     last_win_idx = num_windows
     first_win_idx = max(num_windows - NUM_LAYOUT_TILES, 0)
 else:
