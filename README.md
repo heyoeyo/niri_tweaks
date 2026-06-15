@@ -13,6 +13,7 @@ This repo holds some basic helper scripts that can be used to modify the behavio
 - [niri_parse_keybinds.py](#niri_parse_keybindspy)
 - [niri_search_window.py](#niri_search_windowpy)
 - [niri_unstack_all.py](#niri_unstack_allpy)
+- [niri_doubletap.py](#niri_doubletappy)
 - [fuzzel_helper.sh](#fuzzel_helpersh)
 - [swaybg_helper.sh](#swaybg_helpersh)
 - [mute_on_startup.sh](#mute_on_startupsh)
@@ -313,6 +314,36 @@ Mod+Z { spawn-sh "python3 /path/to/niri_unstack_all.py"; }
 ```
 
 Include the `-c` flag to cycle all column widths or `-c 25` to set all columns to a 25% width (or any other proportion). The `-r` flag can be added to reset all window heights.
+
+<br>
+
+## niri_doubletap.py
+
+Mostly for fun, this script is meant to provide the ability to only run niri commands on double-tap. It can (optionally) also run a different command on single tap. The simplest usage is to run the script followed by the command to run on double-tap:
+
+```kdl
+Mod+M repeat=false { spawn-sh "python3 /path/to/niri_doubletap.py maximize-window-to-edges"; }
+```
+
+For example, this command will only toggle `maximize-window-to-edges` when double-tapping `M`. There are several script flags, which can be seen by running the script in a terminal with the `--help` flag. One option, the `-s` flag, allows for setting single-tap commands:
+
+```kdl
+Mod+M repeat=false { spawn-sh "python3 /path/to/niri_doubletap.py maximize-window-to-edges -s maximize-column"; }
+```
+
+This will maximize a column when pressing `M` once, but toggle `maximize-window-to-edges` when double tapping. This helps avoid having separate keybinds for related functionality.
+
+#### Other uses
+
+One obvious usage is to bind something like `focus-column-left` to single-tap and `focus-monitor-left` to double tap. However, doing so will always trigger a column-focus change before changing the monitor focus, which may be undesirable. To help with this, a 'reversal' command (e.g. `focus-column-right`) can be given using `-r`, so for example:
+
+```kdl
+Mod+Left repeat=false { spawn-sh "python3 /path/to/niri_doubletap.py focus-monitor-left -s focus-column-left -r focus-column-right"; }
+```
+
+This will result in `focus-monitor-left` always being preceeded by a `focus-column-right`, to help counter the unavoidable `focus-column-left` call needed to trigger the double-tap.
+
+Another way to use this script is to remove `repeat=false` from the keybind and then set a _lower-bound_ timing window for registering double-taps. This can make the script trigger commands only when a key is held down. This is a somewhat hacky thing to do and requires carefully picking the double tap (`-dt`) and lower-bound (`-lb`) timings. For example, on my machine `-dt 700 -lb 60` seems to work.
 
 <br>
 
