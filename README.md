@@ -6,7 +6,6 @@ This repo holds some basic helper scripts that can be used to modify the behavio
 - [niri_tile_to_n.py](#niri_tile_to_npy)
 - [niri_custom_layout.py](#niri_custom_layoutpy)
 - [niri_spawnjump.py](#niri_spawnjumppy)
-- [niri_window_details.sh](#niri_window_detailssh)
 - [niri_workspace_helper.py](#niri_workspace_helperpy)
 - [niri_peekaboo.py](#niri_peekaboopy)
 - [niri_overview_bind.py](#niri_overview_bindpy)
@@ -14,6 +13,7 @@ This repo holds some basic helper scripts that can be used to modify the behavio
 - [niri_search_window.py](#niri_search_windowpy)
 - [niri_unstack_all.py](#niri_unstack_allpy)
 - [niri_doubletap.py](#niri_doubletappy)
+- [niri_window_details.sh](#niri_window_detailssh)
 - [fuzzel_helper.sh](#fuzzel_helpersh)
 - [swaybg_helper.sh](#swaybg_helpersh)
 - [mute_on_startup.sh](#mute_on_startupsh)
@@ -179,21 +179,6 @@ Mod+T { spawn "python3" "/path/to/niri_spawnjump.py" "alacritty" "-t" "scratch";
 
 Your niri config needs to include a line like: `workspace "scratch"` for this command to work properly.
 
-
-<br>
-
-## niri_window_details.sh
-
-This script is mostly used for debugging. It prints out basic window information from calling `niri msg focused-window` into a notification. For example, this can print out the `app-id` of a window, making it useful for setting up window rules.
-
-A keybinding can be added to the niri config file to trigger this:
-```kdl
-Mod+Backslash repeat=false { spawn "bash" "/path/to/niri_window_details.sh"; }
-```
-
-Pressing this keybinding while focusing a window will give you a notification that includes basic information about that window. It's also easy to modify the script to print out other info if needed.
-
-
 <br>
 
 ## niri_workspace_helper.py
@@ -344,6 +329,19 @@ Mod+Left repeat=false { spawn-sh "python3 /path/to/niri_doubletap.py focus-monit
 This will result in `focus-monitor-left` always being preceeded by a `focus-column-right`, to help counter the unavoidable `focus-column-left` call needed to trigger the double-tap.
 
 Another way to use this script is to remove `repeat=false` from the keybind and then set a _lower-bound_ timing window for registering double-taps. This can make the script trigger commands only when a key is held down. This is a somewhat hacky thing to do and requires carefully picking the double tap (`-dt`) and lower-bound (`-lb`) timings. For example, on my machine `-dt 700 -lb 60` seems to work.
+
+<br>
+
+## niri_window_details.sh
+
+This script is mostly used for debugging and is an alternative to running `niri msg pick-window` in a terminal. It prints out basic window information from calling `niri msg focused-window` into a notification. For example, this can print out the `app-id` of a window, making it useful for setting up window rules.
+
+A keybinding can be added to the niri config file to trigger this:
+```kdl
+Mod+Backslash repeat=false { spawn "bash" "/path/to/niri_window_details.sh"; }
+```
+
+Pressing this keybinding while focusing a window will give you a notification that includes basic information about that window. It's also easy to modify the script to print out other info if needed.
 
 <br>
 
