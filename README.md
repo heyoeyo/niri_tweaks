@@ -6,6 +6,7 @@ This repo holds some basic helper scripts that can be used to modify the behavio
 - [niri_tile_to_n.py](#niri_tile_to_npy)
 - [niri_custom_layout.py](#niri_custom_layoutpy)
 - [niri_spawnjump.py](#niri_spawnjumppy)
+- [niri_maximize_helper.py](#niri_maximize_helperpy)
 - [niri_workspace_helper.py](#niri_workspace_helperpy)
 - [niri_peekaboo.py](#niri_peekaboopy)
 - [niri_overview_bind.py](#niri_overview_bindpy)
@@ -131,7 +132,7 @@ This would produce the following layout (assuming 8 windows are available!):
 ```
 
 
-By default, triggering the script when windows are already in the correct layout will 'unstack' them, though this can be disabled (see the `--disable_unstack` flag).
+By default, triggering the script when windows are already in the correct layout will 'unstack' them, though this can be disabled (see the `--disable_unstack` flag). Note that the [maximize helper](#niri_maximize_helperpy) script can be used to toggle window maximization without breaking the layout.
 
 
 <br>
@@ -178,6 +179,24 @@ Mod+T { spawn "python3" "/path/to/niri_spawnjump.py" "alacritty" "-t" "scratch";
 ```
 
 Your niri config needs to include a line like: `workspace "scratch"` for this command to work properly.
+
+<br>
+
+## niri_maximize_helper.py
+
+This script acts like a `maximize-window` command (as opposed to the built-in `maximize-column` version). It will automatically unstack windows prior to maximizing and keeps track of the window positioning so that it can be restored when toggling the maximization state. It can be set up as a keybind using:
+
+```kdl
+Mod+M { spawn-sh "python3 /path/to/niri_maximize_helper.py"; }
+```
+
+The script can alternatively be made to run the other maximization commands (e.g. `maximize-window-to-edges` or `fullscreen-window`) by simply adding the command to the end of the script call:
+
+```kdl
+Mod+M { spawn-sh "python3 /path/to/niri_maximize_helper.py fullscreen-window"; }
+```
+
+This leads to support for toggling stacked windows in and out of a fullscreen state. More options can be seen by running the script in a terminal with the `--help` flag.
 
 <br>
 
