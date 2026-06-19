@@ -32,6 +32,12 @@ parser.add_argument(
     help="Determines where windows begin stacking from (default: left)",
 )
 parser.add_argument(
+    "-rtl",
+    "--right_to_left",
+    action="store_true",
+    help="If set, stack windows from right-to-left instead of left-to-right",
+)
+parser.add_argument(
     "-w",
     "--column_width_pcts",
     nargs="*",  # means: 0 or more args
@@ -74,6 +80,7 @@ COLUMN_WIDTH_PCTS = args.column_width_pcts
 ROW_HEIGHT_PCTS = args.row_height_pcts
 UNSTACK_WIDTH_PCT = args.unstack_width_pct
 ANCHOR_STR = args.anchor
+IS_LEFT_TO_RIGHT = not args.right_to_left
 ENABLE_UNSTACK_TOGGLE = not args.disable_unstack
 ROW_RESIZE_DELAY_MS = args.row_resize_delay_ms
 
@@ -122,10 +129,11 @@ def notify(message: str, exit_script: bool = True) -> None:
 # %% Parse layout info
 
 # Handle widths not set (None) vs. set but with no values (empty list)
+NUM_COLUMNS = len(ROWS_PER_COLUMN)
 if COLUMN_WIDTH_PCTS is None:
     COLUMN_WIDTH_PCTS = [None]
 elif len(COLUMN_WIDTH_PCTS) == 0:
-    COLUMN_WIDTH_PCTS = [100 / len(ROWS_PER_COLUMN)]
+    COLUMN_WIDTH_PCTS = [100 / NUM_COLUMNS]
 
 # For sanity, make sure we get list inputs
 COLUMN_WIDTH_PCTS = [COLUMN_WIDTH_PCTS] if isinstance(COLUMN_WIDTH_PCTS, int) else COLUMN_WIDTH_PCTS
@@ -136,23 +144,17 @@ NUM_LAYOUT_TILES = sum(ROWS_PER_COLUMN)
 if NUM_LAYOUT_TILES < 2:
     notify("Layout must have 2 or more entries!")
 
-# Build target (column, row) indexing
-colrow_seq = []
-for col_idx, num_rows in enumerate(ROWS_PER_COLUMN):
-    for row_idx in range(num_rows):
-        colrow_seq.append((col_idx, 1 + row_idx))
-
 # Make sure column widths are set for each column
 need_width_adjustment = True
 if COLUMN_WIDTH_PCTS is None:
     COLUMN_WIDTH_PCTS = []
     need_width_adjustment = False
 elif len(COLUMN_WIDTH_PCTS) == 1:
-    COLUMN_WIDTH_PCTS = [COLUMN_WIDTH_PCTS[0]] * len(ROWS_PER_COLUMN)
-elif len(COLUMN_WIDTH_PCTS) < len(ROWS_PER_COLUMN):
-    COLUMN_WIDTH_PCTS = list(COLUMN_WIDTH_PCTS) + [None] * (len(ROWS_PER_COLUMN) - len(COLUMN_WIDTH_PCTS))
-elif len(COLUMN_WIDTH_PCTS) > len(ROWS_PER_COLUMN):
-    COLUMN_WIDTH_PCTS = COLUMN_WIDTH_PCTS[: len(ROWS_PER_COLUMN)]
+    COLUMN_WIDTH_PCTS = [COLUMN_WIDTH_PCTS[0]] * NUM_COLUMNS
+elif len(COLUMN_WIDTH_PCTS) < NUM_COLUMNS:
+    COLUMN_WIDTH_PCTS = list(COLUMN_WIDTH_PCTS) + [None] * (NUM_COLUMNS - len(COLUMN_WIDTH_PCTS))
+elif len(COLUMN_WIDTH_PCTS) > NUM_COLUMNS:
+    COLUMN_WIDTH_PCTS = COLUMN_WIDTH_PCTS[:NUM_COLUMNS]
     notify(f"Too many column widths! Using: {' '.join(str(W) for W in COLUMN_WIDTH_PCTS)}", exit_script=False)
 
 # Make sure row heights are set for each window
@@ -189,40 +191,38 @@ tile_win_info = [win_info for win_info in curr_win_info if not win_info["is_floa
 if len(tile_win_info) == 0:
     raise SystemExit()
 
-# Order windows for unstacking. Column order can be reversed but rows are always bottom-to-top
+# Get all windows in order, top-to-bottom then left-to-right
 get_col_idx = lambda item: item["layout"]["pos_in_scrolling_layout"][0]
 get_row_idx = lambda item: item["layout"]["pos_in_scrolling_layout"][1]
-get_sort_score = lambda item: (get_col_idx(item), get_row_idx(item))
-ordered_win_info_list = sorted(tile_win_info, key=get_sort_score)
-
-# Get focused window if possible (can be none if in overview mode, for example)
-num_windows = len(ordered_win_info_list)
-focused_win_idx = 0
-for idx, win_info in enumerate(ordered_win_info_list):
-    if win_info["is_focused"]:
-        focused_win_idx = idx
-        break
+get_ltr_sort_score = lambda item: (get_col_idx(item), get_row_idx(item))
+ordered_win_info_list = sorted(tile_win_info, key=get_ltr_sort_score)
 
 # Take only the subset of window info needed to form layout
+num_windows = len(ordered_win_info_list)
 if ANCHOR_STR in ("left", "l"):
-    first_win_idx = 0
-    last_win_idx = NUM_LAYOUT_TILES
+    first_slice_idx = 0
+    last_slice_idx = NUM_LAYOUT_TILES
 elif ANCHOR_STR in ("right", "r"):
-    last_win_idx = num_windows
-    first_win_idx = max(num_windows - NUM_LAYOUT_TILES, 0)
+    last_slice_idx = num_windows
+    first_slice_idx = max(last_slice_idx - NUM_LAYOUT_TILES, 0)
 else:
-    first_win_idx = focused_win_idx
-    last_win_idx = first_win_idx + NUM_LAYOUT_TILES
-layout_win_info_list = ordered_win_info_list[first_win_idx:last_win_idx]
+    focused_idxs = [idx for idx, info in enumerate(ordered_win_info_list) if info["is_focused"]]
+    first_slice_idx = focused_idxs[0] if len(focused_idxs) == 1 else (0 if IS_LEFT_TO_RIGHT else (num_windows - 1))
+    last_slice_idx = first_slice_idx + NUM_LAYOUT_TILES
+layout_win_info_list = ordered_win_info_list[first_slice_idx:last_slice_idx]
 
 
 # ---------------------------------------------------------------------------------------------------------------------
-# %% Re-arrange windows into layout
+# %% Un-stack non-layout windows
+
+# For clarity
+leftmost_layout_info = layout_win_info_list[0]
+rightmost_layout_info = layout_win_info_list[-1]
 
 # Expel any 'non-layout' windows to the left
 left_expel_count = 0
-layout_first_col_idx = get_col_idx(layout_win_info_list[0])
-for win_info in ordered_win_info_list[0:first_win_idx]:
+layout_first_col_idx = get_col_idx(leftmost_layout_info)
+for win_info in ordered_win_info_list[0:first_slice_idx]:
     if get_col_idx(win_info) < layout_first_col_idx:
         break
     shift_window_left(win_info["id"])
@@ -241,8 +241,8 @@ if left_expel_count > 0:
 
 # Expel any 'non-layout' windows to the right
 right_expel_count = 0
-layout_last_col_idx = get_col_idx(layout_win_info_list[-1])
-for win_info in ordered_win_info_list[last_win_idx:]:
+layout_last_col_idx = get_col_idx(rightmost_layout_info)
+for win_info in ordered_win_info_list[last_slice_idx:]:
     if get_col_idx(win_info) > layout_last_col_idx:
         break
     shift_window_right(win_info["id"])
@@ -251,39 +251,64 @@ for win_info in ordered_win_info_list[last_win_idx:]:
         shift_window_right(win_info["id"])
     right_expel_count += 1
 
+
+# ---------------------------------------------------------------------------------------------------------------------
+# %% Re-arrange windows into layout
+
+# For clarity
+arrange_order_win_info_list = layout_win_info_list
+target_column_idx_seq = range(layout_first_col_idx, layout_first_col_idx + NUM_COLUMNS)
+arrange_rows_per_column = ROWS_PER_COLUMN
+shift_window_out = shift_window_right
+shift_window_in = shift_window_left
+if not IS_LEFT_TO_RIGHT:
+    # Reverse indexing and window order for right-to-left arrangments
+    get_rtl_sort_score = lambda item: (-get_col_idx(item), get_row_idx(item))
+    arrange_order_win_info_list = sorted(layout_win_info_list, key=get_rtl_sort_score)
+    target_column_idx_seq = range(layout_last_col_idx, layout_last_col_idx - NUM_COLUMNS, -1)
+    arrange_rows_per_column = reversed(ROWS_PER_COLUMN)
+    shift_window_out = shift_window_left
+    shift_window_in = shift_window_right
+
+# Build target (column, row) indexing of 'arrangement ordered' windows
+colrow_seq = []
+for col_idx, num_rows in zip(target_column_idx_seq, arrange_rows_per_column):
+    for row_idx in range(num_rows):
+        colrow_seq.append((col_idx, 1 + row_idx))
+
 # Keep track of windows that are already arranged correctly (so we can skip trying to arrange them)
 skip_idx = 0
-for (targ_col_idx, targ_row_idx), win_info in zip(colrow_seq, layout_win_info_list):
-    is_col_match = get_col_idx(win_info) == (targ_col_idx + layout_first_col_idx)
+for (targ_col_idx, targ_row_idx), win_info in zip(colrow_seq, arrange_order_win_info_list):
+    is_col_match = get_col_idx(win_info) == targ_col_idx
     is_row_match = get_row_idx(win_info) == targ_row_idx
     if not is_col_match or not is_row_match:
         break
     skip_idx += 1
 
 # Create new list of only the windows that need re-arranging
-adjust_win_info_list = layout_win_info_list
+adjust_win_info_list = arrange_order_win_info_list
 flat_row_idx_sequence = [row_idx for _, row_idx in colrow_seq]
 if skip_idx > 0:
-    adjust_win_info_list = layout_win_info_list[skip_idx:]
+    adjust_win_info_list = arrange_order_win_info_list[skip_idx:]
     flat_row_idx_sequence = flat_row_idx_sequence[skip_idx:]
 
 # Special 'unstack' toggle logic if windows are already in proper layout
 no_window_change = len(adjust_win_info_list) == 0
 need_unstack_reset = ENABLE_UNSTACK_TOGGLE and no_window_change
 if need_unstack_reset:
-    adjust_win_info_list = layout_win_info_list
-    flat_row_idx_sequence = [0] * len(layout_win_info_list)
+    adjust_win_info_list = arrange_order_win_info_list
+    flat_row_idx_sequence = [0] * len(arrange_order_win_info_list)
     need_unstack_reset = True
 
 # Unstack windows if needed (slightly inefficient but much easier to work with)
-for win_info in reversed(adjust_win_info_list):
+for debug_idx, win_info in enumerate(adjust_win_info_list):
     if get_row_idx(win_info) > 1:
-        shift_window_right(win_info["id"])
+        shift_window_out(win_info["id"])
 
 # Shift windows into columns as needed to form layout
 for target_row_idx, win_info in zip(flat_row_idx_sequence, adjust_win_info_list):
     if target_row_idx > 1:
-        shift_window_left(win_info["id"])
+        shift_window_in(win_info["id"])
 
 
 # ---------------------------------------------------------------------------------------------------------------------
