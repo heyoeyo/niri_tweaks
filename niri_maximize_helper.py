@@ -152,7 +152,7 @@ win_w_norm, win_h_norm = (curr_win_w / curr_monitor_w), (curr_win_h / curr_monit
 if MAX_ACTION == "maximize-column":
     is_win_maximized = win_w_norm > MAX_THRESHOLD
 elif "maximize-window-to-edges":
-    is_win_maximized = (win_w_norm > 0.99) and (win_w_norm > MAX_THRESHOLD)
+    is_win_maximized = (win_w_norm > 0.99) and (win_h_norm > MAX_THRESHOLD)
 elif "fullscreen-window":
     is_win_maximized = (win_w_norm > 0.99) and (win_h_norm > 0.99)
 
