@@ -1,6 +1,6 @@
 # niri tweaks
 
-This repo holds some basic helper scripts that can be used to modify the behavior of the [niri](https://github.com/YaLTeR/niri) wayland compositor. The scripts are all independent of one another, so any one can be used without needing the others.
+This repo holds some basic scripts that provide additional functionality for the [niri](https://github.com/YaLTeR/niri) wayland compositor. The scripts are all independent of one another, so any one can be used without needing the others.
 
 #### Scripts:
 - [niri_tile_to_n.py](#niri_tile_to_npy)
@@ -19,11 +19,14 @@ This repo holds some basic helper scripts that can be used to modify the behavio
 - [swaybg_helper.sh](#swaybg_helpersh)
 - [mute_on_startup.sh](#mute_on_startupsh)
 
-Scripts that start with `niri_` make use of the [niri IPC](https://github.com/niri-wm/niri/wiki/IPC) in some way.
+Scripts that start with `niri` make use of the [niri IPC](https://github.com/niri-wm/niri/wiki/IPC) in some way.
+
+All scripts are compatible with the newest release of niri ([v26.04](https://github.com/niri-wm/niri/releases)) and generally compatible with older versions as well. Usage of each script is explained below.
+
 
 ## niri_tile_to_n.py
 
-This script makes niri behave more like a 'regular' tiling window manager up to the point of having 'N' windows (where N is adjustable, 3 by default), after which windows will be added in the normal scrolling pattern. It uses the [niri IPC](https://github.com/YaLTeR/niri/wiki/IPC) and requires niri version 25.08 or greater.
+This script makes niri behave more like a regular tiling window manager up to the point of having 'N' windows (where N is adjustable, 3 by default), after which windows will be added in the normal scrolling pattern. It uses the niri [event stream](https://github.com/niri-wm/niri/wiki/IPC#event-stream) and requires niri version 25.08 or greater.
 
 ### Example
 
@@ -103,16 +106,16 @@ The script itself is one big (ugly) python file, but should be easy to edit if y
 This script allows for quickly forcing windows into a custom layout using a keypress. You can add a line to the niri config to trigger it with a keypress, like:
 
 ```kdl
-Mod+A { spawn-sh "python3 /path/to/niri_custom_layout.py"; }
+Mod+A { spawn-sh "python3 /path/to/niri_custom_layout.py 2 3"; }
 ```
 
-By default this will arrange the first column of windows into 2 rows, and the next column into 3 (assuming 5 windows are available). Integer values can be added to the end of this command to create different layouts. The number of integers sets the number of columns and each integer controls how many rows to use per column. For example adding `2 3 4 5` would produce a layout with 4 columns, the first having 2 rows, the next having 3, then 4 and finally 5 rows. There are a number of customization flags that can be found by running the script in a terminal:
+The integer values added to the end of this command (e.g. `2 3`) determines the layout. The number of integers sets the number of columns and each integer controls how many rows to use per column. For example adding `1 3 2` would produce a layout with 3 columns, the first having 1 row, the next having 3, and the last having 2. There are a number of customization flags that can be found by running the script in a terminal:
 
 ```bash
 python3 niri_custom_layout.py --help
 ```
 
-Some of the flags allow for customizing both the window width and heights. For example, adding the `-w` flag will auto-scale the column widths to fit on screen, regardless of the number of columns. It's also possible to set per column/window sizing, like with the following command:
+Some of the flags allow for customizing both the window width and heights. For example, adding the `-w` flag will auto-scale the column widths to fit on screen, regardless of the number of columns. It's also possible to set a different width per-column by including numbers after `-w`, like `-w 50 0 25` (where `0` means to use the existing window width). Window heights can similarly be set using `-r` to get more elaborate layouts, like with the following command:
 
 ```kdl
 Mod+A { spawn-sh "python3 /path/to/niri_custom_layout.py 3 2 3 -w 25 50 25 -r 25 25 50 80 20 0 0 0 -a l -uw 50"; }
@@ -190,13 +193,13 @@ This script acts like a `maximize-window` command (as opposed to the built-in `m
 Mod+M { spawn-sh "python3 /path/to/niri_maximize_helper.py"; }
 ```
 
-The script can alternatively be made to run the other maximization commands (e.g. `maximize-window-to-edges` or `fullscreen-window`) by simply adding the command to the end of the script call:
+The script can alternatively be made to run the other maximization commands (e.g. `maximize-window-to-edges` or `fullscreen-window`) by adding the command to the end of the script call:
 
 ```kdl
 Mod+M { spawn-sh "python3 /path/to/niri_maximize_helper.py fullscreen-window"; }
 ```
 
-This leads to support for toggling stacked windows in and out of a fullscreen state. More options can be seen by running the script in a terminal with the `--help` flag.
+This leads to support for restoring stacked window positions when toggling out of a fullscreen state for example. More options can be seen by running the script in a terminal with the `--help` flag.
 
 <br>
 
@@ -257,7 +260,7 @@ python3 /path/to/niri_peekaboo.py --help
 
 ## niri_overview_bind.py
 
-This is a very simple script, inspired by a post on the niri issue board ([#2842](https://github.com/YaLTeR/niri/discussions/2842)) about setting up different keybinds in overview mode. The general script usage is:
+This is a [simple script](https://github.com/heyoeyo/niri_tweaks/blob/main/niri_overview_bind.sh) inspired by a post on the niri issue board ([#2842](https://github.com/YaLTeR/niri/discussions/2842)) about setting up different keybinds in overview mode. The general script usage is:
 
 ```bash
 niri_overview_bind.sh 'command in overview mode' 'command in normal mode'
@@ -360,7 +363,7 @@ A keybinding can be added to the niri config file to trigger this:
 Mod+Backslash repeat=false { spawn "bash" "/path/to/niri_window_details.sh"; }
 ```
 
-Pressing this keybinding while focusing a window will give you a notification that includes basic information about that window. It's also easy to modify the script to print out other info if needed.
+Pressing this keybinding while focusing a window will give you a notification that includes basic information about that window. It's also easy to [modify the script](https://github.com/heyoeyo/niri_tweaks/blob/main/niri_window_details.sh) to print out other info if needed.
 
 <br>
 
@@ -451,7 +454,7 @@ Super simple script that's just meant to auto-mute audio on startup. Helps avoid
 To use this, add a start-up line to your niri config file (e.g. `~/.config/niri/config.kdl`):
 
 ```kdl
-spawn-at-startup "bash" "/path/to/mute_on_startup.sh"
+spawn-at-startup "bash" "/path/to/mute_on_startup.sh" "10"
 ```
 
-This also resets the volume to 25%, though this can easily be changed if needed.
+The `"10"` in this example sets the initial volume percentage after un-muting. If not set, the script defaults to 25%.
