@@ -8,6 +8,7 @@ This repo holds some basic scripts that provide additional functionality for the
 - [niri_spawnjump.py](#niri_spawnjumppy)
 - [niri_maximize_helper.py](#niri_maximize_helperpy)
 - [niri_workspace_helper.py](#niri_workspace_helperpy)
+- [niri_float_helper.py](#niri_float_helperpy)
 - [niri_peekaboo.py](#niri_peekaboopy)
 - [niri_overview_bind.py](#niri_overview_bindpy)
 - [niri_parse_keybinds.py](#niri_parse_keybindspy)
@@ -232,6 +233,49 @@ More information about the flags can be found by running the script directly (in
 python3 /path/to/niri_workspace_helper.py --help
 ```
 
+<br>
+
+## niri_float_helper.py
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/edfcbc95-dbc1-48ed-9c6f-38bdf776b9c2" style="height:240px">
+</p>
+
+The original idea for this script comes from a [post](https://github.com/niri-wm/niri/discussions/4273) on the niri discussion board. It uses [slurp](https://github.com/emersion/slurp) to decide where floating windows should be placed. It also remembers the width of windows before floating, so they can be restored when reverting to tiling.
+
+The script is meant to be triggered with a keybind in the niri config:
+
+```kdl
+Mod+X { spawn-sh "python3 /path/to/niri_float_helper.py"; }
+```
+
+By default, this will display 5 placement regions. Clicking on a region will 'float' the current focused window into position. Pressing the key twice (without interacting with the regions) will 'un-float' the focused window if already floating.
+
+The regions can be customized by providing strings in `x y w h` order to the script. Negative x/y values can be used to move relative to the right/bottom edges, and percentages can be given as well. For example:
+
+```kdl
+Mod+X { spawn-sh "python3 /path/to/niri_float_helper.py '10 20 48.5% 75%' '-10 -20 48.5% 50%'"; }
+```
+
+This provides two regions, one large region in the top-left and another smaller region in the bottom right. Alternatively, the script can be run with the `-d` flag, which enables directly drawing the float region for the focused window. For example:
+
+```kdl
+Mod+MouseMiddle repeat=false { spawn-sh "python3 /path/to/niri_float_helper.py -d"; }
+```
+
+Note that the drawn region can be moved around by holding space (a feature of `slurp`)!
+
+There are several other script options, including settings to adjust the overlay coloring, which can be seen by running the script in a terminal with the `--help` flag:
+
+```bash
+python3 /path/to/niri_float_helper.py --help
+```
+
+For example, one helpful flag is `-r` which can be used to print drawn region sizing into a terminal. This can help in setting up custom regions.
+
+#### Note on X/Y Offsets
+
+Niri window movement uses a co-ordinate system that's offset from the full display (and `slurp`), which can lead to errors in window positioning. These offsets are determined on first run and recorded in a temporary file, but this can lead to some jittering. To prevent this from happening, provide the offsets to the script using the `-xo` and `-yo` flags. A notification is given to report the value of the offsets on first run, if missed, they'll be available in a temporary file: `/tmp/niri_float_helper/xyoffsets.info`
 
 <br>
 
