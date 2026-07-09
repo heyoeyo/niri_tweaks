@@ -68,6 +68,9 @@ parser.add_argument(
     "-nu", "--no_unfloat", action="store_true", help="Disables ability to 'un-float' window by re-running the command"
 )
 parser.add_argument(
+    "-nr", "--no_refloat", action="store_true", help="Disables ability to 're-float' window by re-running the command"
+)
+parser.add_argument(
     "-sb",
     "--bg_color",
     type=str,
@@ -122,6 +125,7 @@ Y_OFFSET = args.y_offset
 SIZE_THRESHOLD = max(1, args.size_threshold)
 ENABLE_WIDTH_RESTORE = not args.no_restore_width
 ENABLE_UNFLOAT = not args.no_unfloat
+ENABLE_REFLOAT = not args.no_refloat
 SLURP_BG_COL = args.bg_color
 SLURP_BORDER_COL = args.border_color
 SLURP_SELECT_COL = args.selection_color
@@ -283,9 +287,10 @@ if ENABLE_REGION_PRINTOUT:
 
 
 # ---------------------------------------------------------------------------------------------------------------------
-# %% Un-float window
+# %% Handle re-triggers
 
-if ENABLE_UNFLOAT:
+# Check if user is running command with slurp already opened
+if ENABLE_UNFLOAT or ENABLE_REFLOAT:
     is_slurp_running = run_command("pidof slurp", capture_output=True, text=True)
     if is_slurp_running.returncode == 0:
         pid_slurp = is_slurp_running.stdout.strip()
@@ -293,15 +298,23 @@ if ENABLE_UNFLOAT:
         sleep(0.05)
 
         # Check if we have a focused window, now that slurp is not blocking view
-        unfloat_win_info = get_focused_window()
-        if unfloat_win_info is not None:
-            unfloat_id = unfloat_win_info["id"]
-            niri_action(f"move-window-to-tiling --id {unfloat_id}")
+        retrigger_win_info = get_focused_window()
+        if retrigger_win_info is not None:
+            retrigger_id, is_retrigger_floating = retrigger_win_info["id"], retrigger_win_info["is_floating"]
+            if ENABLE_UNFLOAT and is_retrigger_floating:
+                # Unfloat and try to restore state
+                niri_action(f"move-window-to-tiling --id {retrigger_id}")
+                prev_exists, prev_wh = read_tmp_data(STATE_FOLDER_PATH, f"{retrigger_id}.state", delete_on_read=True)
+                if prev_exists and ENABLE_WIDTH_RESTORE:
+                    niri_action(f"set-window-width {prev_wh[0]} --id {retrigger_id}")
 
-        # Try to restore previous window state
-        prev_exists, prev_wh = read_tmp_data(STATE_FOLDER_PATH, f"{unfloat_id}.state", delete_on_read=True)
-        if prev_exists and ENABLE_WIDTH_RESTORE:
-            niri_action(f"set-window-width {prev_wh[0]} --id {unfloat_id}")
+            elif ENABLE_REFLOAT and not is_retrigger_floating:
+                # Re-float window & record width for restore
+                niri_action(f"move-window-to-floating --id {retrigger_id}")
+                if ENABLE_WIDTH_RESTORE:
+                    rt_win_width, rt_win_height = retrigger_win_info["layout"]["window_size"]
+                    write_tmp_data(STATE_FOLDER_PATH, f"{retrigger_id}.state", (rt_win_width, rt_win_height))
+
         raise SystemExit()
 
 
