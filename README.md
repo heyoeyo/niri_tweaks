@@ -158,18 +158,18 @@ As an alternative to cycling, the `-p` and `-s` flags can be used to 'pull' and 
 To bind to a keypress, you need to add a line to the niri config. Flags for the script can be added at the end, like:
 
 ```kdl
-Mod+T { spawn "python3" "/path/to/niri_spawnjump.py" "alacritty" "-w" "-p" "-s"; }
+Mod+T { spawn-sh "python3 /path/to/niri_spawnjump.py alacritty -w -p -s"; }
 ```
 
-For flatpaks, use the entire run command:
+For flatpaks, use the entire run command (inside of quotes to indicate it's one command):
 
 ```kdl
-Mod+B { spawn "python3" "/path/to/niri_spawnjump.py" "flatpak run app.zen_browser.app"; }
+Mod+B { spawn-sh "python3 /path/to/niri_spawnjump.py 'flatpak run app.zen_browser.app'"; }
 ```
 By default, this will search for existing instances based on the `app-id` that niri assigns, assuming this matches the name used to run the application (e.g. `alacritty` or `app.zen_browser.app`). Some applications seem to use a different name, like the flatpak for Chromium, which has an `app-id` of `chromium-browser`. For these applications, the `app-id` can be passed as a second argument:
 
 ```kdl
-Mod+B { spawn "python3" "/path/to/niri_spawnjump.py" "flatpak run org.chromium.Chromium" "chromium-browser"; }
+Mod+B { spawn-sh "python3 /path/to/niri_spawnjump.py 'flatpak run org.chromium.Chromium' 'chromium-browser'"; }
 ```
 
 To help figure out the `app-id` for these sorts of applications, run this script without any arguments. The `app-id` of the currently focused window will then be printed out in the terminal.
@@ -179,7 +179,7 @@ To help figure out the `app-id` for these sorts of applications, run this script
 The script includes support for providing a 'scratchpad' workspace name (use `-t workspacename`), this will auto-enable `--push` and `--pull` and will push windows to the provided workspace name, instead of pushing them to the end of the current workspace:
 
 ```kdl
-Mod+T { spawn "python3" "/path/to/niri_spawnjump.py" "alacritty" "-t" "scratch"; }
+Mod+T { spawn-sh "python3 /path/to/niri_spawnjump.py alacritty -t scratch"; }
 ```
 
 Your niri config needs to include a line like: `workspace "scratch"` for this command to work properly.
@@ -289,7 +289,7 @@ This is an experimental script used to pull nearby windows into view as floats f
 
 The script can be bound to a keypress in your niri config:
 ```kdl
-Mod+P { spawn "python3" "/path/to/niri_peekaboo.py"; }
+Mod+P { spawn-sh "python3 /path/to/niri_peekaboo.py"; }
 ```
 
 Running this command once will float window(s) in the column to the right of where you're focused and move the window(s) into view on the left. Running it again will return the floating windows back to the column on the right (e.g. offscreen).
@@ -404,7 +404,7 @@ This script is mostly used for debugging and is an alternative to running `niri 
 
 A keybinding can be added to the niri config file to trigger this:
 ```kdl
-Mod+Backslash repeat=false { spawn "bash" "/path/to/niri_window_details.sh"; }
+Mod+Backslash { spawn-sh "bash /path/to/niri_window_details.sh"; }
 ```
 
 Pressing this keybinding while focusing a window will give you a notification that includes basic information about that window. It's also easy to [modify the script](https://github.com/heyoeyo/niri_tweaks/blob/main/niri_window_details.sh) to print out other info if needed.
@@ -419,7 +419,7 @@ The normal behavior of the niri application launcher ([fuzzel](https://codeberg.
 
 You need to add (or most likely [replace](https://github.com/YaLTeR/niri/blob/e837e39623457dc5ad29c34a5ce4d4616e5fbf1e/resources/default-config.kdl#L366)) a keybinding in the niri config file to run this script, for example:
 ```kdl
-Mod+0 repeat=false { spawn "bash" "/path/to/fuzzel_helper.sh"; }
+Mod+0 repeat=false { spawn-sh "bash /path/to/fuzzel_helper.sh"; }
 ```
 
 This makes the combo 'Mod+0' open the launcher or close it if it's already open.
@@ -475,7 +475,7 @@ Using `--folder /path/to/folder`  will change the folder location from which wal
 
 To have this script set a wallpaper on startup, first make sure swaybg is installed, then add the following line to your niri config:
 ```kdl
-spawn-at-startup "bash" "/path/to/swaybg_helper.sh" "-f" "/path/to/wallpapers/folder"
+spawn-sh-at-startup "bash /path/to/swaybg_helper.sh -f /path/to/wallpapers/folder"
 ```
 
 The `-f` flag can be ommited if images are placed in `~/Pictures/Wallpapers`. Adding the `-c` flag will result in the wallpaper changing on each login.
@@ -484,7 +484,7 @@ The `-f` flag can be ommited if images are placed in `~/Pictures/Wallpapers`. Ad
 
 To cycle backgrounds on a keypress, add the following keybind:
 ```kdl
-Mod+Shift+W { spawn "bash" "/path/to/swaybg_helper.sh" "-c" "-d" "-f" "/path/to/wallpapers/folder"; }
+Mod+Shift+W { spawn-sh "bash /path/to/swaybg_helper.sh -c -d -f /path/to/wallpapers/folder"; }
 ```
 
 Again, `-f` can be omitted as can `-d` if having a delay isn't a concern.
@@ -498,7 +498,7 @@ Super simple script that's just meant to auto-mute audio on startup. Helps avoid
 To use this, add a start-up line to your niri config file (e.g. `~/.config/niri/config.kdl`):
 
 ```kdl
-spawn-at-startup "bash" "/path/to/mute_on_startup.sh" "10"
+spawn-sh-at-startup "bash /path/to/mute_on_startup.sh 10"
 ```
 
-The `"10"` in this example sets the initial volume percentage after un-muting. If not set, the script defaults to 25%.
+The `10` in this example sets the initial volume percentage after un-muting. If not set, the script defaults to 25%.
