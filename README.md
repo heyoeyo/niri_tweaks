@@ -3,7 +3,7 @@
 This repo holds some basic scripts that provide additional functionality for the [niri](https://github.com/YaLTeR/niri) wayland compositor. The scripts are all independent of one another, so any one can be used without needing the others.
 
 #### Scripts:
-- [niri_tile_to_n.py](#niri_tile_to_npy)
+- [niri_tilemod.py](#niri_tilemodpy)
 - [niri_custom_layout.py](#niri_custom_layoutpy)
 - [niri_spawnjump.py](#niri_spawnjumppy)
 - [niri_maximize_helper.py](#niri_maximize_helperpy)
@@ -19,86 +19,87 @@ This repo holds some basic scripts that provide additional functionality for the
 - [fuzzel_helper.sh](#fuzzel_helpersh)
 - [swaybg_helper.sh](#swaybg_helpersh)
 - [mute_on_startup.sh](#mute_on_startupsh)
+- [niri_tile_to_n.py](#niri_tile_to_npy)
 
 Scripts that start with `niri` make use of the [niri IPC](https://github.com/niri-wm/niri/wiki/IPC) in some way.
 
 All scripts are compatible with the newest release of niri ([v26.04](https://github.com/niri-wm/niri/releases)) and generally compatible with older versions as well. Usage of each script is explained below.
 
 
-## niri_tile_to_n.py
+## niri_tilemod.py
 
-This script makes niri behave more like a regular tiling window manager up to the point of having 'N' windows (where N is adjustable, 3 by default), after which windows will be added in the normal scrolling pattern. It uses the niri [event stream](https://github.com/niri-wm/niri/wiki/IPC#event-stream) and requires niri version 25.08 or greater.
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/1fc67144-5eaf-4145-8668-ccb84471df8c" width="400px" height=167px>
+</p>
 
-### Example
-
-The example below shows the sequence of opening 4 windows, when 'N=3'. The first opened window (A) will be maximized:
-```
-┌─────────────┐
-│             │
-│      A      │
-│             │
-│             │
-└─────────────┘
-```
-
-Opening a second window (B) will collapse (A) so the windows tile:
-```
-┌─────┐ ┌─────┐
-│     │ │     │
-│  A  │ │  B  │
-│     │ │     │
-│     │ │     │
-└─────┘ └─────┘
-```
-
-Opening a third window (C) will begin stacking windows on the right:
-```
-┌─────┐ ┌─────┐
-│     │ │  B  │
-│  A  │ └─────┘
-│     │ ┌─────┐
-│     │ │  C  │
-└─────┘ └─────┘
-```
-
-The fourth window (D), opens off-screen in the normal niri scrolling pattern:
-```
-┌─────┐ ┌─────┐ ┌─────┐
-│     │ │  B  │ │     │
-│  A  │ └─────┘ │  D  │
-│     │ ┌─────┐ │     │
-│     │ │  C  │ │     │
-└─────┘ └─────┘ └─────┘
-```
-
-Any other windows opened will continue to be added to the right.
+This script auto-stacks windows within a specified range of columns. The stacking behavior can be configured on a per-workspace or monitor basis. It also supports 'maximize solo windows' and 'right-to-left' behaviors. It uses the niri [event stream](https://github.com/niri-wm/niri/wiki/IPC#event-stream) and requires niri version 25.08 or greater.
 
 ### Quick test run
 
 If you'd like to quickly try this out, use the following terminal command:
 ```bash
-curl https://raw.githubusercontent.com/heyoeyo/niri_tweaks/refs/heads/main/niri_tile_to_n.py | python3
+curl https://raw.githubusercontent.com/heyoeyo/niri_tweaks/refs/heads/main/niri_tilemod.py | python3
 ```
 This downloads the script text and pipes it straight into python to run it. After doing this, try opening 3 or more windows to see the effect. Hitting ctrl+c or closing the terminal will disable the effect.
 
 ### Permanent use
 
-To have the script always running, either clone this repo, or otherwise copy the contents of [the script](https://github.com/heyoeyo/niri_tweaks/blob/main/niri_tile_to_n.py) into a file somewhere on your machine. Then you just need to update your [niri config file](https://github.com/YaLTeR/niri/wiki/Configuration:-Introduction) (usually in `~/.config/niri/config.kdl`) to run the script on start-up:
+To have the script always running, either [clone](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) this repo, or otherwise copy the contents of [the script](https://github.com/heyoeyo/niri_tweaks/blob/main/niri_tilemod.py) into a file somewhere on your machine. Then you just need to update your [niri config file](https://github.com/YaLTeR/niri/wiki/Configuration:-Introduction) (usually in `~/.config/niri/config.kdl`) to run the script on start-up:
 ```kdl
-spawn-at-startup "python3" "/path/to/niri_tile_to_n.py"
+spawn-sh-at-startup "python3 /path/to/niri_tilemod.py"
 ```
 
 You'll have to log-out/log-in for this to take effect.
 
-### Customization
+### Configuration
 
-There are a few flags for toggling features (like `-x` for disabling auto-maximization of new windows) which can be found by running:
+There are many configuration options, which can be seen by running the script in a terminal with the `--help` flag:
+
 ```bash
-python3 niri_tile_to_n.py --help
+python3 /path/to/niri_tilemod.py --help
 ```
 
-The script itself is one big (ugly) python file, but should be easy to edit if you want more specific customizations. Most of the script is dedicated to listening to the niri IPC, while the [last 50 lines](https://github.com/heyoeyo/niri_tweaks/blob/d4f64bf4d79407f3cb70283392aadfb96aa240ff/niri_tile_to_n.py#L522-L568) or so hold all of the custom windowing logic (so hack away here if you want some more custom behavior).
+Settings can be configured across different workspaces/monitors. This is done using a `tilemod_config.toml` file which (by default) is expected to be located in the niri config folder. Here's an example config:
 
+<details>
+
+<summary>~/.config/tilemod_config.toml</summary>
+
+```toml
+[default]
+num_stack = 2
+column_bounds = [2, 2] # niri indexing starts at 1
+apply_to_moved_windows = false
+maximize_solos_on_open = true
+maximize_solos_on_close = true
+collapse_solos_on_open = true
+allow_outer_stack = true
+right_to_left = false
+action_maximize = "MaximizeColumn" # or "MaximizeWindowToEdges" or "FullscreenWindow"
+disabled = false
+
+# Always stack 2x2x2x2... on workspace index 2
+[workspaces.idx.2]
+column_bounds = [0, 100]
+num_stack = 2
+
+# Open right-to-left on workspace ID 3, with no stacking
+[workspaces.id.3]
+right_to_left = true
+num_stack = 0
+
+# Disable tilemod on monitor named 'HDMI-A-7'
+[outputs.name.HDMI-A-7]
+disabled=true
+```
+</details>
+
+<br>
+
+Configuration tries to match by workspaces first, then outputs (e.g. monitors) and finally by the default settings if no other match is found. When setting up more elaborate configurations, the script can be run with the `-k` flag to print out the active config in a terminal (based on where the terminal is located). If the script is already running, changes to the config can be made to take effect by toggling the niri overview.
+
+> [!Note]
+> Support for .toml files requires python v3.11+. If using an earlier version of python, a .json file can be used instead. It's recommended to use a [toml-to-json](https://transform.tools/toml-to-json) converter to create this.
 
 <br>
 
@@ -506,3 +507,10 @@ spawn-sh-at-startup "bash /path/to/mute_on_startup.sh 10"
 ```
 
 The `10` in this example sets the initial volume percentage after un-muting. If not set, the script defaults to 25%.
+
+<br>
+
+## niri_tile_to_n.py
+(_legacy_)
+
+Please use [tilemod](##niri_tilemodpy) instead. For the original documentation for this script, please see an older commit ([a1b8a16](https://github.com/heyoeyo/niri_tweaks/tree/a1b8a16c7b39b5b0d6147682314a10b7264fa9f0)).
