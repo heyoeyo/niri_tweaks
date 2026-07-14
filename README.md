@@ -188,6 +188,10 @@ Your niri config needs to include a line like: `workspace "scratch"` for this co
 
 ## niri_maximize_helper.py
 
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/ce948365-ff9d-4fd0-9ce5-9ec7b801d9fc" style="height:240px">
+</p>
+
 This script acts like a `maximize-window` command (as opposed to the built-in `maximize-column` version). It will automatically unstack windows prior to maximizing and keeps track of the window positioning so that it can be restored when toggling the maximization state. It can be set up as a keybind using:
 
 ```kdl
