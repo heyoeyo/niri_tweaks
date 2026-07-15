@@ -513,4 +513,4 @@ The `10` in this example sets the initial volume percentage after un-muting. If 
 ## niri_tile_to_n.py
 (_legacy_)
 
-Please use [tilemod](##niri_tilemodpy) instead. For the original documentation for this script, please see an older commit ([a1b8a16](https://github.com/heyoeyo/niri_tweaks/tree/a1b8a16c7b39b5b0d6147682314a10b7264fa9f0)).
+Please use [tilemod](#niri_tilemodpy) instead. For the original documentation for this script, please see an older commit ([a1b8a16](https://github.com/heyoeyo/niri_tweaks/tree/a1b8a16c7b39b5b0d6147682314a10b7264fa9f0#niri_tile_to_npy)).
