@@ -51,6 +51,9 @@ spawn-sh-at-startup "python3 /path/to/niri_tilemod.py"
 
 You'll have to log-out/log-in for this to take effect.
 
+> [!Tip]
+> Replacing the default [left & right movement](https://github.com/niri-wm/niri/blob/0777769e719b7c9b7c980d4ea66288bfbb4da5b3/resources/default-config.kdl#L413-L420) keybinds with `consume-or-expel-window-left` & `consume-or-expel-window-right` makes auto-stacking _far more practical_ within niri.
+
 ### Configuration
 
 There are many configuration options, which can be seen by running the script in a terminal with the `--help` flag:
@@ -69,11 +72,12 @@ Settings can be configured across different workspaces/monitors. This is done us
 [default]
 num_stack = 2
 column_bounds = [2, 2] # niri indexing starts at 1
-apply_to_moved_windows = false
 maximize_solos_on_open = true
 maximize_solos_on_close = true
 collapse_solos_on_open = true
 allow_outer_stack = true
+apply_to_moved_windows = false
+autostack_last_column_only = false
 right_to_left = false
 action_maximize = "MaximizeColumn" # or "MaximizeWindowToEdges" or "FullscreenWindow"
 disabled = false

@@ -66,6 +66,11 @@ parser.add_argument(
     help="When a window is moved into another workspace, treat it as a newly spawned window",
 )
 parser.add_argument(
+    "--autostack_last_column_only",
+    action="store_true",
+    help="Only enable auto-stacking when the new window is opened in the last-most column",
+)
+parser.add_argument(
     "--action_maximize",
     type=str,
     default="MaximizeColumn",
@@ -118,6 +123,7 @@ ARG_MAXIMIZE_SOLOS_ON_OPEN = not args.no_maximize_solos
 ARG_MAXIMIZE_SOLOS_ON_CLOSE = not args.no_maximize_on_close
 ARG_COLLAPSE_SOLOS_ON_OPEN = not args.no_collapse_on_open
 ARG_APPLY_TO_MOVED_WINDOWS = args.apply_to_moved_windows
+ARG_AUTOSTACK_LAST_ONLY = args.autostack_last_column_only
 ARG_ACTION_MAXIMIZE = args.action_maximize
 STARTUP_DELAY_MS = args.delay_startup_ms
 ENABLE_CONFIG_RELOAD = not args.no_config_reload
@@ -370,6 +376,7 @@ base_configs_dict = {
         "collapse_solos_on_open": ARG_COLLAPSE_SOLOS_ON_OPEN,
         "allow_outer_stack": ARG_ALLOW_OUTER_STACK,
         "apply_to_moved_windows": ARG_APPLY_TO_MOVED_WINDOWS,
+        "autostack_last_column_only": ARG_AUTOSTACK_LAST_ONLY,
         "right_to_left": ARG_ENABLE_RTL,
         "action_maximize": ARG_ACTION_MAXIMIZE,
         "disabled": False,
@@ -387,18 +394,20 @@ if ARG_CONFIG_PATH.exists():
     all_configs_dict = update_working_config(base_configs_dict, loaded_config)
     print("", "Loaded config file:", ARG_CONFIG_PATH, sep="\n")
 else:
-    print("", "No config file found:", ARG_CONFIG_PATH, sep="\n")
+    print("", "No config file found:", ARG_CONFIG_PATH, "-> Will use default config", sep="\n")
 
 
 # ---------------------------------------------------------------------------------------------------------------------
 # %% Setup
 
 # Set up separate connections for sending commands during event stream
+SCRIPTNAME = Path(__file__).name
 PATH_SOCKET = os.environ["NIRI_SOCKET"]
 if not os.path.exists(PATH_SOCKET):
     raise FileNotFoundError(f"Cannot connect to niri socket: {PATH_SOCKET}")
 event_stream_reader = NiriIPC(PATH_SOCKET)
 niri = NiriIPC(PATH_SOCKET)
+print("", f"({SCRIPTNAME}) - Opened niri IPC connection", sep="\n")
 
 # Check versioning
 response_ok, response_version = niri.message("Version")
@@ -630,6 +639,7 @@ try:
 
             # Get (tiled-only) windows on workspace of new window, since that's all we care about
             tile_win_dict = get_tiled_workspace_windows(all_win_dict, curr_wspace_id)
+            num_tile_wins = len(tile_win_dict)
 
             # Important note (as of v26.04):
             # When a new window appears, it will report itself as being in row 1 of the
@@ -661,6 +671,13 @@ try:
                 max_col_idx = max(rows_per_column_dict.keys(), default=0)
                 col_tiling_bounds = [max_col_idx - idx + 1 for idx in col_tiling_bounds]
 
+            # Disable stacking checks if we're not in the last-most column with last-only config
+            if config["autostack_last_column_only"]:
+                rightmost_col_idx = max(rows_per_column_dict.keys(), default=1)
+                is_opened_last_col = (new_win_col_idx > rightmost_col_idx) if not enable_rtl else (new_win_col_idx == 2)
+                if not is_opened_last_col:
+                    side_col_iter = []
+
             # Check if we need to shift into another column
             start_colidx, end_colidx = sorted(col_tiling_bounds)
             need_shift_amt = 0
@@ -691,7 +708,6 @@ try:
                     niri.batch_action("ConsumeOrExpelWindowLeft", id=new_win_id)
 
             # Handle solo-window maximization
-            num_tile_wins = len(tile_win_dict)
             if config["maximize_solos_on_open"] and num_tile_wins == 1:
                 if new_win_size_state == WindowSizeState.NOT_MAXIMIZED:
                     niri.batch_action("FocusWindow", id=new_win_id)
@@ -734,4 +750,4 @@ except Exception as err:
 finally:
     event_stream_reader.close()
     niri.close()
-    print("", f"({Path(__file__).name}) - Closed niri IPC connection", sep="\n")
+    print("", f"({SCRIPTNAME}) - Closed niri IPC connection", sep="\n")
