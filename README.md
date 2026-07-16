@@ -29,7 +29,7 @@ All scripts are compatible with the newest release of niri ([v26.04](https://git
 ## niri_tilemod.py
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/1fc67144-5eaf-4145-8668-ccb84471df8c" width="400px" height=167px>
+  <img src="https://github.com/user-attachments/assets/1fc67144-5eaf-4145-8668-ccb84471df8c" width=400 height=167>
 </p>
 
 This script auto-stacks windows within a specified range of columns. The stacking behavior can be configured on a per-workspace or monitor basis. It also supports 'maximize solo windows' and 'right-to-left' behaviors. It uses the niri [event stream](https://github.com/niri-wm/niri/wiki/IPC#event-stream) and requires niri version 25.08 or greater.
@@ -97,8 +97,6 @@ num_stack = 0
 disabled=true
 ```
 </details>
-
-<br>
 
 Configuration tries to match by workspaces first, then outputs (e.g. monitors) and finally by the default settings if no other match is found. When setting up more elaborate configurations, the script can be run with the `-k` flag to print out the active config in a terminal (based on where the terminal is located). If the script is already running, changes to the config can be made to take effect by toggling the niri overview.
 
@@ -194,7 +192,7 @@ Your niri config needs to include a line like: `workspace "scratch"` for this co
 ## niri_maximize_helper.py
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/ce948365-ff9d-4fd0-9ce5-9ec7b801d9fc" style="height:240px">
+  <img src="https://github.com/user-attachments/assets/ce948365-ff9d-4fd0-9ce5-9ec7b801d9fc" width=540 height=226>
 </p>
 
 This script acts like a `maximize-window` command (as opposed to the built-in `maximize-column` version). It will automatically unstack windows prior to maximizing and keeps track of the window positioning so that it can be restored when toggling the maximization state. It can be set up as a keybind using:
@@ -247,7 +245,7 @@ python3 /path/to/niri_workspace_helper.py --help
 ## niri_float_helper.py
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/edfcbc95-dbc1-48ed-9c6f-38bdf776b9c2" style="height:240px">
+  <img src="https://github.com/user-attachments/assets/edfcbc95-dbc1-48ed-9c6f-38bdf776b9c2" width=540 height=225>
 </p>
 
 The original idea for this script comes from a [post](https://github.com/niri-wm/niri/discussions/4273) on the niri discussion board. It uses [slurp](https://github.com/emersion/slurp) to decide where floating windows should be placed. It also remembers the width of windows before floating, so they can be restored when reverting to tiling.
@@ -291,7 +289,7 @@ Niri window movement uses a co-ordinate system that's offset from the full displ
 ## niri_peekaboo.py
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/f3824bd1-b240-4146-a8f2-6de68c4a5aa9" style="height:240px">
+  <img src="https://github.com/user-attachments/assets/f3824bd1-b240-4146-a8f2-6de68c4a5aa9" width=550>
 </p>
 
 This is an experimental script used to pull nearby windows into view as floats for quick interactions, without needing to scroll the view. This is meant for use on maximized or fullscreen windows. Non-full-width windows won't work as expected and may require some IPC updates before they can be properly supported.
@@ -334,7 +332,7 @@ This removes the need for remembering [dedicated keybinds](https://github.com/Ya
 ## niri_parse_keybinds.py
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/45f4eecd-ae60-46f3-923a-a2d7b36800b6" style="height:320px">
+  <img src="https://github.com/user-attachments/assets/45f4eecd-ae60-46f3-923a-a2d7b36800b6" width=600>
 </p>
 
 This script is meant to help replace the built-in hotkey overlay. It can be used to parse niri keybinds into a 'dmenu' format, to make them searchable in fuzzel (or even [fzf](https://github.com/junegunn/fzf)). To avoid requiring dependencies, this script tries to parse the kdl file without any libraries, which may be error prone! Feel free to open an issue if you find any problems.
