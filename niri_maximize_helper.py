@@ -40,6 +40,18 @@ parser.add_argument(
     help="If set, windows will not be restored to stacked state on un-maximizing",
 )
 parser.add_argument(
+    "-n",
+    "--disable_realign",
+    action="store_true",
+    help="Disables attempt to re-align the view when un-maximizing the last-most column",
+)
+parser.add_argument(
+    "-b",
+    "--disable_break_fullscreen",
+    action="store_true",
+    help="Disables ability to toggle out of fullscreen using other maximize actions",
+)
+parser.add_argument(
     "-p",
     "--folder_path",
     type=str,
@@ -53,6 +65,8 @@ EXPEL_LEFT = not args.expel_right
 MAX_ACTION = args.action
 MAX_THRESHOLD = args.max_threshold
 ENABLE_STACK_RESTORE = not args.disable_restore
+ENABLE_VIEW_REALIGN = not args.disable_realign
+ENABLE_BREAK_FULLSCREEN = not args.disable_break_fullscreen
 STATE_FOLDER_PATH = Path(args.folder_path)
 
 
@@ -146,23 +160,32 @@ all_win_info = get_all_windows_info()
 all_ws_win_info = (info for info in all_win_info if info["workspace_id"] == curr_ws_id)
 tile_win_info = [info for info in all_ws_win_info if not info["is_floating"]]
 
-# Figure out window size state (not part of niri IPC!)
+# Figure out if we're in the target maximized state
+# -> (as of 26.04) fullscreen state is independent of maximized state, but we can't distinguish either using IPC
 curr_win_w, curr_win_h = curr_win_info["layout"]["window_size"]
-win_w_norm, win_h_norm = (curr_win_w / curr_monitor_w), (curr_win_h / curr_monitor_h)
-if MAX_ACTION == "maximize-column":
-    is_win_maximized = win_w_norm > MAX_THRESHOLD
-elif "maximize-window-to-edges":
-    is_win_maximized = (win_w_norm > 0.99) and (win_h_norm > MAX_THRESHOLD)
-elif "fullscreen-window":
-    is_win_maximized = (win_w_norm > 0.99) and (win_h_norm > 0.99)
+w_gap_px, h_gap_px = (curr_monitor_w - curr_win_w), (curr_monitor_h - curr_win_h)
+is_fullscreen, in_target_max_state = False, False
+if (w_gap_px < 5) and (h_gap_px < 5):
+    is_fullscreen = True
+    in_target_max_state = MAX_ACTION == "fullscreen-window"
+elif (w_gap_px < 5) or (h_gap_px < 5):
+    in_target_max_state = MAX_ACTION == "maximize-window-to-edges"
+elif (curr_win_w / curr_monitor_w) > MAX_THRESHOLD:
+    in_target_max_state = MAX_ACTION == "maximize-column"
+
+# Special feature, break fullscreen state using other max actions
+# -> Normally these toggle 'underneath' the fullscreen state, which seems unintuitive...
+if ENABLE_BREAK_FULLSCREEN and MAX_ACTION != "fullscreen-window" and is_fullscreen:
+    run_command("niri msg action fullscreen-window")
+    raise SystemExit()
 
 # Handle un-maxmization
 curr_colrow = curr_win_info["layout"]["pos_in_scrolling_layout"]
-col_count = len([info for info in tile_win_info if get_col_idx(info) == curr_colrow[0]])
 prev_is_floating, prev_colrow, prev_col_count = read_prior_window_data(STATE_FOLDER_PATH, curr_win_id)
-if is_win_maximized:
+if in_target_max_state:
 
     # Handle various 'un-maximize' cases
+    need_stack_restored = False
     if prev_is_floating:
         run_command("niri msg action toggle-window-floating")
 
@@ -180,7 +203,8 @@ if is_win_maximized:
         # If adjacent window count matches previous state, try to move window back into column/row position
         adjacent_col_idx = curr_colrow[0] + (1 if EXPEL_LEFT else -1)
         adjacent_col_count = len([info for info in tile_win_info if get_col_idx(info) == adjacent_col_idx])
-        if adjacent_col_count == expected_col_count and adjacent_col_idx == expected_adj_col_idx:
+        need_stack_restored = adjacent_col_count == expected_col_count and adjacent_col_idx == expected_adj_col_idx
+        if need_stack_restored:
             expel_cmd = f"consume-or-expel-window-{'right' if EXPEL_LEFT else 'left'}"
             run_command(f"niri msg action {expel_cmd}")
             num_move_up = max((adjacent_col_count + 1) - prev_row_idx, 0)
@@ -192,10 +216,28 @@ if is_win_maximized:
         # Case where window was already alone, just toggle max state
         run_command(f"niri msg action {MAX_ACTION}")
 
+    # Special check. If the window ends up as the last column, force re-align to get rid of empty space on right
+    if ENABLE_VIEW_REALIGN and not prev_is_floating:
+
+        # Figure out if the window is now in the last-most column
+        last_col_idx = max([get_col_idx(info) for info in tile_win_info], default=1)
+        curr_col_idx = curr_colrow[0]
+        if need_stack_restored:
+            last_col_idx -= 1
+            curr_col_idx -= 0 if EXPEL_LEFT else 1
+        is_unmaxed_in_last_col = curr_col_idx == last_col_idx
+
+        # Toggle focus to force niri to right-align the window
+        if is_unmaxed_in_last_col and curr_col_idx > 1:
+            run_command("niri msg action focus-column-first")
+            run_command(f"niri msg action focus-window --id {curr_win_id}")
+        pass
+
 else:
     # Maximization case. Move window out of shared column first, if needed
-    if col_count > 1:
+    curr_col_count = len([info for info in tile_win_info if get_col_idx(info) == curr_colrow[0]])
+    if curr_col_count > 1:
         expel_cmd = f"consume-or-expel-window-{'left' if EXPEL_LEFT else 'right'}"
         run_command(f"niri msg action {expel_cmd}")
-        record_window_data(STATE_FOLDER_PATH, curr_win_id, curr_is_floating, curr_colrow, col_count)
+        record_window_data(STATE_FOLDER_PATH, curr_win_id, curr_is_floating, curr_colrow, curr_col_count)
     run_command(f"niri msg action {MAX_ACTION}")
