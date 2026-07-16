@@ -69,8 +69,15 @@ parser.add_argument(
     "-rd",
     "--row_resize_delay_ms",
     type=int,
-    default=80,
+    default=25,
     help="Delay before trying to resize rows (if using custom heights). Needed for sizing to properly take effect",
+)
+parser.add_argument(
+    "-t",
+    "--transition_delay_ms",
+    type=int,
+    default=0,
+    help="Set to a value > 0 (e.g. 200) to trigger a screen transition effect to hide layout re-arrangement",
 )
 
 # For convenience
@@ -83,6 +90,7 @@ ANCHOR_STR = args.anchor
 IS_LEFT_TO_RIGHT = not args.right_to_left
 ENABLE_UNSTACK_TOGGLE = not args.disable_unstack
 ROW_RESIZE_DELAY_MS = args.row_resize_delay_ms
+TRANSITION_DELAY_MS = args.transition_delay_ms
 
 # Special case. If using 1 row in each column, disable unstacking automatically (doesn't make sense to use)
 if all(num_rows == 1 for num_rows in ROWS_PER_COLUMN):
@@ -215,6 +223,10 @@ layout_win_info_list = ordered_win_info_list[first_slice_idx:last_slice_idx]
 # ---------------------------------------------------------------------------------------------------------------------
 # %% Un-stack non-layout windows
 
+# Hide animations with a transition, if configured
+if TRANSITION_DELAY_MS > 0:
+    run_command(f"niri msg action do-screen-transition -d {TRANSITION_DELAY_MS}")
+
 # For clarity
 leftmost_layout_info = layout_win_info_list[0]
 rightmost_layout_info = layout_win_info_list[-1]
@@ -301,7 +313,7 @@ if need_unstack_reset:
     need_unstack_reset = True
 
 # Unstack windows if needed (slightly inefficient but much easier to work with)
-for debug_idx, win_info in enumerate(adjust_win_info_list):
+for win_info in reversed(adjust_win_info_list):
     if get_row_idx(win_info) > 1:
         shift_window_out(win_info["id"])
 
