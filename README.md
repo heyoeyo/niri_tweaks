@@ -9,6 +9,7 @@ This repo holds some basic scripts that provide additional functionality for the
 - [niri_maximize_helper.py](#niri_maximize_helperpy)
 - [niri_workspace_helper.py](#niri_workspace_helperpy)
 - [niri_float_helper.py](#niri_float_helperpy)
+- [niri_close_helper.sh](#niri_close_helpersh)
 - [niri_peekaboo.py](#niri_peekaboopy)
 - [niri_overview_bind.py](#niri_overview_bindpy)
 - [niri_parse_keybinds.py](#niri_parse_keybindspy)
@@ -283,6 +284,21 @@ For example, one helpful flag is `-r` which can be used to print drawn region si
 #### Note on X/Y Offsets
 
 Niri window movement uses a co-ordinate system that's offset from the full display (and `slurp`), which can lead to errors in window positioning. These offsets are determined on first run and recorded in a temporary file, but this can lead to some jittering. To prevent this from happening, provide the offsets to the script using the `-xo` and `-yo` flags. A notification is given to report the value of the offsets on first run, if missed, they'll be available in a temporary file: `/tmp/niri_float_helper/xyoffsets.info`
+
+<br>
+
+## niri_close_helper.sh
+
+This script helps to avoid having an empty space after closing windows under certain conditions (see issue [#2815](https://github.com/niri-wm/niri/discussions/2815)). It's meant to replace the original `close-window` command as follows:
+
+```
+Mod+Q { spawn-sh "bash /path/to/niri_close_helper.sh"; }
+```
+
+Optionally, a `--left` (or `-l`) flag can be added to the end of this command to enable a 'close & focus left' behavior when closing eliminates a column.
+
+
+
 
 <br>
 
