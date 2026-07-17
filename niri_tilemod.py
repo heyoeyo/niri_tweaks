@@ -621,11 +621,11 @@ try:
             curr_wspace_dict = all_wspace_dict[curr_wspace_id]
             curr_monitor_dict = all_monitor_dict[curr_wspace_dict["output"]]
 
-            # Ignore newly created maximized or floating windows
-            # -> Assume windows opened maximized are done by user window rules (don't want to interfere)
-            # -> Tiling logic shouldn't apply to floating windows
+            # Ignore floats or windows that seem to be created with window rules (don't want to interfere)
             new_win_size_state = get_missing_size_state(new_win_dict, curr_monitor_dict)
-            if new_win_dict["is_floating"] or (new_win_size_state != new_win_size_state.NOT_MAXIMIZED):
+            is_already_maximized = new_win_size_state != WindowSizeState.NOT_MAXIMIZED
+            is_on_another_wspace = curr_wspace_id != focused_wspace_id
+            if new_win_dict["is_floating"] or is_already_maximized or is_on_another_wspace:
                 continue
 
             # Get active tiling config (can be different for workspaces/monitors)
@@ -734,6 +734,8 @@ try:
             for name_action, (ok_action, response_msg) in action_responses:
                 if not ok_action:
                     notify(f"Action error: {name_action}\n{response_msg}")
+                    print("Action error!", action_responses, sep="\n")
+
             pass
 
 except ConnectionError as err:
