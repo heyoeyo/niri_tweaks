@@ -9,9 +9,13 @@ import argparse
 import subprocess
 import json
 from pathlib import Path
+from os import environ
 
 # ---------------------------------------------------------------------------------------------------------------------
 # %% Handle script args
+
+# Try user folder for storing data (cleans up on log-out), otherwise use tmp (cleans up on reboot)
+default_folder_path = Path(environ.get("XDG_RUNTIME_DIR", "/tmp")) / "niri_maximize_helper"
 
 # Define script arguments
 parser = argparse.ArgumentParser(description="Maximize windows directly. Handles stacking/unstacking")
@@ -55,8 +59,8 @@ parser.add_argument(
     "-p",
     "--folder_path",
     type=str,
-    default="/tmp/niri_maximize_helper",
-    help="Folder path used to store window state restoration data (default: '/tmp/niri_maximize_helper')",
+    default=default_folder_path,
+    help=f"Folder path used to store window state restoration data (default: {default_folder_path})",
 )
 
 # For convenience

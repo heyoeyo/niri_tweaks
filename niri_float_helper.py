@@ -10,6 +10,7 @@ import subprocess
 import json
 from pathlib import Path
 from time import sleep
+from os import environ
 
 # ---------------------------------------------------------------------------------------------------------------------
 # %% Handle script args
@@ -27,6 +28,7 @@ default_regions = [
     "-20 20 35% 45%",
     "-20 -20 35% 45%",
 ]
+default_folder_path = Path(environ.get("XDG_RUNTIME_DIR", "/tmp")) / "niri_float_helper"
 
 # Define script arguments
 parser = argparse.ArgumentParser(description="Script which provides additional functionality when floating windows")
@@ -110,8 +112,8 @@ parser.add_argument(
     "-p",
     "--folder_path",
     type=str,
-    default="/tmp/niri_float_helper",
-    help="Folder path used to store state data (default: '/tmp/niri_float_helper')",
+    default=str(default_folder_path),
+    help=f"Folder path used to store state data (default: {default_folder_path})",
 )
 
 

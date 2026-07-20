@@ -8,11 +8,14 @@
 import argparse
 import subprocess
 import datetime as dt
-from os import utime
+from os import utime, environ
 from pathlib import Path
 
 # ---------------------------------------------------------------------------------------------------------------------
 # %% Handle script args
+
+# Try user folder for storing data (cleans up on log-out), otherwise use tmp (cleans up on reboot)
+default_folder_path = Path(environ.get("XDG_RUNTIME_DIR", "/tmp")) / "niri_doubletap"
 
 # Define script arguments
 parser = argparse.ArgumentParser(
@@ -48,13 +51,22 @@ parser.add_argument(
     default=0,
     help="Sets a lower bound, so that double tap cannot be *faster* than this (can produce 'on-hold' behavior)",
 )
-parser.add_argument("-n", "--not_niri", action="store_true", help="If true, commands are not executed as niri actions")
+parser.add_argument(
+    "-n", "--not_niri", action="store_true", help="If true, commands are executed as-is, instead of as niri actions"
+)
+parser.add_argument(
+    "-p",
+    "--folder_path",
+    type=str,
+    default=str(default_folder_path),
+    help=f"Folder path used to store timing data (default: {default_folder_path})",
+)
 parser.add_argument(
     "-x",
-    "--file_suffix",
+    "--file_index",
     type=str,
-    default="0",
-    help="Suffix added to timing file. Using a suffix allows for independent double-tap timings to be recorded",
+    default="default",
+    help="Index used to differentiate multiple double-tap timings. Only needed if using double-tap on multiple commands",
 )
 parser.add_argument("-notify", "--notify", action="store_true", help="Report time elapsed on call (for debugging)")
 
@@ -66,7 +78,8 @@ REVERSE_ACTION = args.reverse_single_tap
 DOUBLE_TAP_WINDOW_MS = args.double_tap_window_ms
 LOWBOUND_TAP_WINDOW_MS = args.lower_bound_window_ms
 IS_NIRI_ACTION = not args.not_niri
-FILE_SUFFIX = args.file_suffix
+FILE_INDEX = args.file_index
+FOLDER_PATH = Path(args.folder_path)
 ENABLE_NOTIFY = args.notify
 
 
@@ -100,7 +113,8 @@ if DOUBLE_TAP_ACTION is None:
     notify("Action not set! See:\nniri msg action --help")
 
 # Make sure timing file exists
-tmp_file = Path(f"/tmp/niri_doubletap_{FILE_SUFFIX}")
+FOLDER_PATH.mkdir(exist_ok=True)
+tmp_file = Path(FOLDER_PATH) / FILE_INDEX
 if not tmp_file.exists():
     tmp_file.touch(exist_ok=True)
     utime(tmp_file, (0, 0))
