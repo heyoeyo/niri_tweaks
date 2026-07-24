@@ -10,7 +10,6 @@ import subprocess
 import json
 from pathlib import Path
 
-
 # ---------------------------------------------------------------------------------------------------------------------
 # %% Handle script args
 
@@ -228,14 +227,14 @@ def pull_window(target_window_data: dict, all_windows_data: list[dict]) -> None:
 
 def push_window(target_window_data: dict, all_windows_data: list[dict], scratchpad_name: str | None = None) -> None:
     """
-    Pushs a target window to the end of the current workspace, or to the next workspace if floating.
+    Push a target window to the end of the current workspace, or to the next workspace if floating.
     If a scratchpad (workspace) name is provided, then push windows to that workspace instead.
     """
 
     # Push to 'scratchpad' workspace, if provided
+    targ_id = target_window_data["id"]
     if scratchpad_name is not None:
-        id_arg = f"--window-id {target_window_data['id']}"
-        run_command(f"niri msg action move-window-to-workspace {id_arg} {scratchpad_name} --focus false")
+        run_command(f"niri msg action move-window-to-workspace --window-id {targ_id} {scratchpad_name} --focus false")
         return
 
     # We can't move floats to the end of the workspace, so just push them to the next workspace
@@ -244,20 +243,33 @@ def push_window(target_window_data: dict, all_windows_data: list[dict], scratchp
         run_command("niri msg action move-window-to-workspace-down --focus false")
         return
 
-    # Figure out where look after we push the window
-    final_column_idx = max(1, get_window_position(target_window_data)[0] - 1)
-    if not target_window_data["is_focused"]:
-        is_valid_win, orig_win = get_focused_window()
-        final_column_idx = get_window_position(orig_win)[0] if is_valid_win else 1
-        focus_window(target_window_data["id"])
+    # Sanity check, make sure we're focused on the target window (should always be true?)
+    run_command(f"niri msg action focus-window --id {targ_id}")
 
-    # Un-stack the window before pushing if needed (IPC only allows pushing a full column)
-    if check_is_stacked_in_column(target_window_data, all_windows_data):
-        run_command("niri msg action consume-or-expel-window-right")
+    # If there's only one column, just try to cycle focus (in case it's a stack)
+    targ_wspace_id = target_window_data["workspace_id"]
+    all_wins_in_wspace = (info for info in all_windows_data if info["workspace_id"] == targ_wspace_id)
+    col_idxs_in_wspace = set(get_window_position(info)[0] for info in all_wins_in_wspace if not info["is_floating"])
+    if len(col_idxs_in_wspace) == 1:
+        run_command("niri msg action focus-window-up-or-bottom")
+        return
 
-    # Move the target window to the end of the workspace then snap back to where we were looking
-    run_command("niri msg action move-column-to-last")
-    run_command(f"niri msg action focus-column {final_column_idx}")
+    # Move focus off of the target window
+    targ_col_idx, _ = get_window_position(target_window_data)
+    run_command(f"niri msg action focus-column-{'left' if targ_col_idx > 1 else 'right'}")
+
+    # Shift window using consume/expel, which doesn't pull the viewport
+    is_in_stacked_column = check_is_stacked_in_column(target_window_data, all_windows_data)
+    last_col_idx = max(col_idxs_in_wspace, default=0)
+    num_right_shifts = 2 * (last_col_idx - targ_col_idx) + (1 if is_in_stacked_column else 0)
+    for _ in range(num_right_shifts):
+        run_command(f"niri msg action consume-or-expel-window-right --id {targ_id}")
+
+    # Special check, if the window started in column one, we'll end up with a right-aligned view
+    # -> So we do a quick focus-right/left to reset view alignment
+    if targ_col_idx == 1:
+        run_command("niri msg action focus-column-right")
+        run_command("niri msg action focus-column-left")
 
     return
 
@@ -278,7 +290,7 @@ if enable_appid_inspection:
     except KeyboardInterrupt:
         pass
 
-    quit()
+    raise SystemExit(0)
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -316,7 +328,7 @@ if num_already_open < SPAWN_LIMIT:
             close_fds=True,
             start_new_session=True,
         )
-    quit()
+    raise SystemExit(0)
 
 # Push/pull/jump to the (single) open instance
 if num_already_open == 1:
@@ -327,7 +339,7 @@ if num_already_open == 1:
         pull_window(target_win, all_win_list)
     else:
         focus_window(target_win["id"])
-    quit()
+    raise SystemExit(0)
 
 
 # Helper used to build window positioning format which we'll sort to decide window ordering
