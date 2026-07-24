@@ -712,7 +712,7 @@ try:
                 if new_win_size_state == WindowSizeState.NOT_MAXIMIZED:
                     niri.batch_action("FocusWindow", id=new_win_id)
                     niri.batch_action(config["action_maximize"])
-                    if not is_focus_on_new_win:
+                    if not is_focus_on_new_win and (focused_win_id is not None):
                         niri.batch_action("FocusWindow", id=focused_win_id)
 
             # Collapse maximized windows when no longer solo
@@ -726,7 +726,7 @@ try:
                     elif other_win_size_state == WindowSizeState.MAX_TO_EDGES:
                         niri.batch_action("MaximizeWindowToEdges")
                     # -> Could collapse fullscreen state, but probably not desired...
-                    niri.batch_action("FocusWindow", id=focused_win_id)
+                    niri.batch_action("FocusWindow", id=focused_win_id if focused_win_id is not None else new_win_id)
                 pass
 
             # Trigger all actions & report any errors
