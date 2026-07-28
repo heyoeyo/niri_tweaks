@@ -16,6 +16,7 @@ This repo holds some basic scripts that provide additional functionality for the
 - [niri_search_window.py](#niri_search_windowpy)
 - [niri_unstack_all.py](#niri_unstack_allpy)
 - [niri_doubletap.py](#niri_doubletappy)
+- [niri_right_align.sh](#niri_right_alignsh)
 - [niri_window_details.sh](#niri_window_detailssh)
 - [fuzzel_helper.sh](#fuzzel_helpersh)
 - [swaybg_helper.sh](#swaybg_helpersh)
@@ -423,6 +424,30 @@ This will result in `focus-monitor-left` always being preceeded by a `focus-colu
 Another way to use this script is to remove `repeat=false` from the keybind and then set a _lower-bound_ timing window for registering double-taps. This can make the script trigger commands only when a key is held down. This is a somewhat hacky thing to do and requires carefully picking the double tap (`-dt`) and lower-bound (`-lb`) timings. For example, on my machine `-dt 700 -lb 60` seems to work.
 
 </details>
+
+<br>
+
+## niri_right_align.sh
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/1b6d3aed-d0b8-41d7-803a-cc3af9f99999" width=320 height=133>
+</p>
+
+This script can trick niri into right-aligning the viewport. This isn't really a supported feature (as of niri v26.04, see PR [#2998](https://github.com/niri-wm/niri/pull/2998) or [#3033](https://github.com/niri-wm/niri/pull/3033)), so it may be unreliable!
+
+It can be bound to a keypress like:
+
+```kdl
+Mod+semicolon repeat=false { spawn-sh "bash /path/to/niri_right_align.sh"; }
+```
+
+This works by quickly opening a 'dummy' window, moving it around, and then closing it in a such a way that the viewport is shifted. By default, the script will check for common terminals on the system to use as the dummy window, but the desired application can be provided directly to the script as an optional argument. It's best to use an application that opens and closes quickly, for example to use `alacritty`:
+
+```kdl
+Mod+semicolon repeat=false { spawn-sh "bash /path/to/niri_right_align.sh alacritty"; }
+```
+
+Note that this won't work if other view alignment features are active (e.g. `always-center-single-column`) or if a window is maximized.
 
 <br>
 
