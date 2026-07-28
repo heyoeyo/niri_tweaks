@@ -20,11 +20,10 @@ This repo holds some basic scripts that provide additional functionality for the
 - [fuzzel_helper.sh](#fuzzel_helpersh)
 - [swaybg_helper.sh](#swaybg_helpersh)
 - [mute_on_startup.sh](#mute_on_startupsh)
-- [niri_tile_to_n.py](#niri_tile_to_npy)
 
 Scripts that start with `niri` make use of the [niri IPC](https://github.com/niri-wm/niri/wiki/IPC) in some way.
 
-All scripts are compatible with the newest release of niri ([v26.04](https://github.com/niri-wm/niri/releases)) and generally compatible with older versions as well. Usage of each script is explained below.
+All scripts are compatible with the newest release of niri ([v26.04](https://github.com/niri-wm/niri/releases)) and generally compatible with older versions as well. These should all work without requiring compilation/installation steps. Usage of each script is explained below.
 
 
 ## niri_tilemod.py
@@ -33,7 +32,7 @@ All scripts are compatible with the newest release of niri ([v26.04](https://git
   <img src="https://github.com/user-attachments/assets/1fc67144-5eaf-4145-8668-ccb84471df8c" width=400 height=167>
 </p>
 
-This script auto-stacks windows within a specified range of columns. The stacking behavior can be configured on a per-workspace or monitor basis. It also supports 'maximize solo windows' and 'right-to-left' behaviors. It uses the niri [event stream](https://github.com/niri-wm/niri/wiki/IPC#event-stream) and requires niri version 25.08 or greater.
+This script auto-stacks windows up to a (configurable) number of rows. It also supports 'auto-maximize single windows' and 'right-to-left' behaviors. It relies on the niri [event stream](https://github.com/niri-wm/niri/wiki/IPC#event-stream).
 
 ### Quick test run
 
@@ -41,19 +40,16 @@ If you'd like to quickly try this out, use the following terminal command:
 ```bash
 curl https://raw.githubusercontent.com/heyoeyo/niri_tweaks/refs/heads/main/niri_tilemod.py | python3
 ```
-This downloads the script text and pipes it straight into python to run it. After doing this, try opening 3 or more windows to see the effect. Hitting ctrl+c or closing the terminal will disable the effect.
+This downloads the script text and pipes it straight into python to run it. After doing this, try opening 3 or more windows to see the effect. Hitting ctrl+c or closing the terminal will disable the effect. Note that if you create a config file (as described below), it will take affect when running this command.
 
 ### Permanent use
 
-To have the script always running, either [clone](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) this repo, or otherwise copy the contents of [the script](https://github.com/heyoeyo/niri_tweaks/blob/main/niri_tilemod.py) into a file somewhere on your machine. Then you just need to update your [niri config file](https://github.com/YaLTeR/niri/wiki/Configuration:-Introduction) (usually in `~/.config/niri/config.kdl`) to run the script on start-up:
+To have the script always running, you just need to update your [niri config file](https://github.com/YaLTeR/niri/wiki/Configuration:-Introduction) (usually in `~/.config/niri/config.kdl`) to run the script on start-up:
 ```kdl
 spawn-sh-at-startup "python3 /path/to/niri_tilemod.py"
 ```
 
 You'll have to log-out/log-in for this to take effect.
-
-> [!Tip]
-> Replacing the default [left & right movement](https://github.com/niri-wm/niri/blob/0777769e719b7c9b7c980d4ea66288bfbb4da5b3/resources/default-config.kdl#L413-L420) keybinds with `consume-or-expel-window-left` & `consume-or-expel-window-right` makes auto-stacking _far more practical_ within niri.
 
 ### Configuration
 
@@ -63,11 +59,13 @@ There are many configuration options, which can be seen by running the script in
 python3 /path/to/niri_tilemod.py --help
 ```
 
-Settings can be configured across different workspaces/monitors. This is done using a `tilemod_config.toml` file which (by default) is expected to be located in the niri config folder. Here's an example config:
+For example, to disable auto-stacking (keep auto-maximize only), add `--num_stack 0` to the end of the command when running.
+
+Settings configured through script flags will apply to all workspaces/monitors. Having different settings per-workspace or monitor requires a `tilemod_config.toml` file which (by default) is expected to be located in the niri config folder. Here's an example config:
 
 <details>
 
-<summary>~/.config/tilemod_config.toml</summary>
+<summary>~/.config/niri/tilemod_config.toml</summary>
 
 ```toml
 [default]
@@ -99,10 +97,10 @@ disabled=true
 ```
 </details>
 
-Configuration tries to match by workspaces first, then outputs (e.g. monitors) and finally by the default settings if no other match is found. When setting up more elaborate configurations, the script can be run with the `-k` flag to print out the active config in a terminal (based on where the terminal is located). If the script is already running, changes to the config can be made to take effect by toggling the niri overview.
+Configuration tries to match by workspaces first, then outputs (e.g. monitors) and finally by the default settings if no other match is found. If the script is already running, changes to the config can be made to take effect by toggling the niri overview.
 
-> [!Note]
-> Support for .toml files requires python v3.11+. If using an earlier version of python, a .json file can be used instead. It's recommended to use a [toml-to-json](https://transform.tools/toml-to-json) converter to create this.
+#### Custom modifications
+Most of the script is dedicated to reconstructing the window state from the niri [event stream](https://github.com/heyoeyo/niri_tweaks/blob/44cdd9318da7bfc768f06f5199fc211ff537cab8/niri_tilemod.py#L466). Logic for responding to [closed windows](https://github.com/heyoeyo/niri_tweaks/blob/44cdd9318da7bfc768f06f5199fc211ff537cab8/niri_tilemod.py#L588) or [new windows](https://github.com/heyoeyo/niri_tweaks/blob/44cdd9318da7bfc768f06f5199fc211ff537cab8/niri_tilemod.py#L615) is found near the bottom of the script, so hack away there if you want more custom behavior.
 
 <br>
 
@@ -249,7 +247,7 @@ python3 /path/to/niri_workspace_helper.py --help
   <img src="https://github.com/user-attachments/assets/edfcbc95-dbc1-48ed-9c6f-38bdf776b9c2" width=540 height=225>
 </p>
 
-The original idea for this script comes from a [post](https://github.com/niri-wm/niri/discussions/4273) on the niri discussion board. It uses [slurp](https://github.com/emersion/slurp) to decide where floating windows should be placed. It also remembers the width of windows before floating, so they can be restored when reverting to tiling.
+The original idea for this script comes from a [post](https://github.com/niri-wm/niri/discussions/4273) on the niri discussion board. It uses [slurp](https://github.com/emersion/slurp) to decide where floating windows should be placed. It also remembers the width of windows before floating, so they can be restored when reverting to tiling. Double-tapping the command behaves like a normal floating toggle, so it can replace the [original keybind](https://github.com/niri-wm/niri/blob/7f26c3ee804fb6ed458ef7fb0e3c794f14e0b3bc/resources/default-config.kdl#L596).
 
 The script is meant to be triggered with a keybind in the niri config:
 
@@ -257,7 +255,7 @@ The script is meant to be triggered with a keybind in the niri config:
 Mod+X { spawn-sh "python3 /path/to/niri_float_helper.py"; }
 ```
 
-By default, this will display 5 placement regions. Clicking on a region will 'float' the current focused window into position. Pressing the key twice (without interacting with the regions) will 'un-float' the focused window if already floating.
+By default, this will display 5 placement regions. Clicking on a region will 'float' the current focused window into position.
 
 The regions can be customized by providing strings in `x y w h` order to the script. Negative x/y values can be used to move relative to the right/bottom edges, and percentages can be given as well. For example:
 
@@ -281,9 +279,13 @@ python3 /path/to/niri_float_helper.py --help
 
 For example, one helpful flag is `-r` which can be used to print drawn region sizing into a terminal. This can help in setting up custom regions.
 
-#### Note on X/Y Offsets
+<details>
+<summary>Note on X/Y Offsets</summary>
 
 Niri window movement uses a co-ordinate system that's offset from the full display (and `slurp`), which can lead to errors in window positioning. These offsets are determined on first run and recorded in a temporary file, but this can lead to some jittering. To prevent this from happening, provide the offsets to the script using the `-xo` and `-yo` flags. A notification is given to report the value of the offsets on first run, if missed, they'll be available in a temporary file: `/tmp/niri_float_helper/xyoffsets.info`
+
+</details>
+
 
 <br>
 
@@ -407,7 +409,8 @@ Mod+M repeat=false { spawn-sh "python3 /path/to/niri_doubletap.py maximize-windo
 
 This will maximize a column when pressing `M` once, but toggle `maximize-window-to-edges` when double tapping. This helps avoid having separate keybinds for related functionality.
 
-#### Other uses
+<details>
+<summary>Other uses</summary>
 
 One obvious usage is to bind something like `focus-column-left` to single-tap and `focus-monitor-left` to double tap. However, doing so will always trigger a column-focus change before changing the monitor focus, which may be undesirable. To help with this, a 'reversal' command (e.g. `focus-column-right`) can be given using `-r`, so for example:
 
@@ -418,6 +421,8 @@ Mod+Left repeat=false { spawn-sh "python3 /path/to/niri_doubletap.py focus-monit
 This will result in `focus-monitor-left` always being preceeded by a `focus-column-right`, to help counter the unavoidable `focus-column-left` call needed to trigger the double-tap.
 
 Another way to use this script is to remove `repeat=false` from the keybind and then set a _lower-bound_ timing window for registering double-taps. This can make the script trigger commands only when a key is held down. This is a somewhat hacky thing to do and requires carefully picking the double tap (`-dt`) and lower-bound (`-lb`) timings. For example, on my machine `-dt 700 -lb 60` seems to work.
+
+</details>
 
 <br>
 
@@ -531,4 +536,6 @@ The `10` in this example sets the initial volume percentage after un-muting. If 
 ## niri_tile_to_n.py
 (_legacy_)
 
-Please use [tilemod](#niri_tilemodpy) instead. For the original documentation for this script, please see an older commit ([a1b8a16](https://github.com/heyoeyo/niri_tweaks/tree/a1b8a16c7b39b5b0d6147682314a10b7264fa9f0#niri_tile_to_npy)).
+Please use [tilemod](#niri_tilemodpy) instead, which is a more general version of `tile_to_n`.
+
+For the original documentation for this script, please see an older commit ([a1b8a16](https://github.com/heyoeyo/niri_tweaks/tree/a1b8a16c7b39b5b0d6147682314a10b7264fa9f0#niri_tile_to_npy)).
