@@ -101,7 +101,7 @@ disabled=true
 Configuration tries to match by workspaces first, then outputs (e.g. monitors) and finally by the default settings if no other match is found. If the script is already running, changes to the config can be made to take effect by toggling the niri overview.
 
 #### Custom modifications
-Most of the script is dedicated to reconstructing the window state from the niri [event stream](https://github.com/heyoeyo/niri_tweaks/blob/44cdd9318da7bfc768f06f5199fc211ff537cab8/niri_tilemod.py#L466). Logic for responding to [closed windows](https://github.com/heyoeyo/niri_tweaks/blob/44cdd9318da7bfc768f06f5199fc211ff537cab8/niri_tilemod.py#L588) or [new windows](https://github.com/heyoeyo/niri_tweaks/blob/44cdd9318da7bfc768f06f5199fc211ff537cab8/niri_tilemod.py#L615) is found near the bottom of the script, so hack away there if you want more custom behavior.
+Most of the script is concerned with listening to the [event stream](https://github.com/heyoeyo/niri_tweaks/blob/44cdd9318da7bfc768f06f5199fc211ff537cab8/niri_tilemod.py#L466). Logic for responding to [closed windows](https://github.com/heyoeyo/niri_tweaks/blob/44cdd9318da7bfc768f06f5199fc211ff537cab8/niri_tilemod.py#L588) or [new windows](https://github.com/heyoeyo/niri_tweaks/blob/44cdd9318da7bfc768f06f5199fc211ff537cab8/niri_tilemod.py#L615) is found near the bottom of the script, so hack away there if you want more custom behavior.
 
 <br>
 
@@ -441,7 +441,9 @@ It can be bound to a keypress like:
 Mod+semicolon repeat=false { spawn-sh "bash /path/to/niri_right_align.sh"; }
 ```
 
-This works by quickly opening a 'dummy' window, moving it around, and then closing it in a such a way that the viewport is shifted. By default, the script will check for common terminals on the system to use as the dummy window, but the desired application can be provided directly to the script as an optional argument. It's best to use an application that opens and closes quickly, for example to use `alacritty`:
+This works by quickly opening a 'dummy' window, moving it around, and then closing it in such a way that the viewport is shifted.
+
+By default, the script will check for common terminals on the system to use as the dummy window, but an application can be provided directly to the script as an optional argument. It's best to use an application that opens and closes quickly, for example to use `alacritty`:
 
 ```kdl
 Mod+semicolon repeat=false { spawn-sh "bash /path/to/niri_right_align.sh alacritty"; }
