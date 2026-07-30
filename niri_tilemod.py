@@ -548,12 +548,14 @@ try:
             pass
 
         elif "WorkspacesChanged" == evt_name:
-            # Signals re-write of workspace data. Event data format: {"workspaces": [... list of workspace dicts ...]}
+            # Signals full re-write of workspace data. Happens on startup or when workspaces are added/removed
+            # Event data format: {"workspaces": [... list of workspace dicts ...]}
             all_wspace_dict = {data["id"]: data for data in evt_data["workspaces"]}
             focused_wspace_id = get_focused_id(all_wspace_dict)
 
         elif "WindowsChanged" == evt_name:
-            # Signals re-write of window data. Event data format: {"windows": [... list of window dicts ...]}
+            # Signals full re-write of window data. Happens on startup (only?)
+            # Event data format: {"windows": [... list of window dicts ...]}
             all_win_dict = {data["id"]: data for data in evt_data["windows"]}
             focused_win_id = get_focused_id(all_win_dict)
 
@@ -591,9 +593,15 @@ try:
             if closed_win_dict["is_floating"]:
                 continue
 
-            # Get active config
+            # Get location info of closed window
             curr_wspace_id = closed_win_dict["workspace_id"]
-            curr_wspace_dict = all_wspace_dict[curr_wspace_id]
+            curr_wspace_dict = all_wspace_dict.get(curr_wspace_id, None)
+            if curr_wspace_dict is None:
+                # Can happen when a window is closed (remotely) on a dynamic workspace
+                # -> The workspace is removed before the window, so we don't have a valid id!
+                continue
+
+            # Get active config
             curr_monitor_dict = all_monitor_dict[curr_wspace_dict["output"]]
             _, config = get_tiling_config(all_configs_dict, curr_wspace_dict, curr_monitor_dict)
             if config["disabled"]:
@@ -601,7 +609,7 @@ try:
 
             # Handle re-maximizing solo windows
             tile_win_dict = get_tiled_workspace_windows(all_win_dict, curr_wspace_id)
-            if config["maximize_solos_on_close"] and len(tile_win_dict) == 1:
+            if len(tile_win_dict) == 1 and config["maximize_solos_on_close"]:
                 solo_id = tuple(tile_win_dict.keys())[0]
                 solo_win_size_state = get_missing_size_state(tile_win_dict[solo_id], curr_monitor_dict)
                 if solo_win_size_state == WindowSizeState.NOT_MAXIMIZED:
@@ -708,7 +716,7 @@ try:
                     niri.batch_action("ConsumeOrExpelWindowLeft", id=new_win_id)
 
             # Handle solo-window maximization
-            if config["maximize_solos_on_open"] and num_tile_wins == 1:
+            if num_tile_wins == 1 and config["maximize_solos_on_open"]:
                 if new_win_size_state == WindowSizeState.NOT_MAXIMIZED:
                     niri.batch_action("FocusWindow", id=new_win_id)
                     niri.batch_action(config["action_maximize"])
@@ -716,7 +724,7 @@ try:
                         niri.batch_action("FocusWindow", id=focused_win_id)
 
             # Collapse maximized windows when no longer solo
-            if config["collapse_solos_on_open"] and num_tile_wins == 2:
+            if num_tile_wins == 2 and config["collapse_solos_on_open"]:
                 other_win_id = [win_id for win_id in tile_win_dict.keys() if win_id != new_win_id][0]
                 other_win_size_state = get_missing_size_state(tile_win_dict[other_win_id], curr_monitor_dict)
                 if other_win_size_state != WindowSizeState.NOT_MAXIMIZED:

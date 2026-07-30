@@ -76,13 +76,16 @@ fi
 # Figure out workspace index to move dummy into
 ORIG_WSID=$(jq .workspace_id <<< $ORIG_INFO)
 ORIG_WSIDX=$(niri msg -j workspaces | jq --argjson wsid $ORIG_WSID '.[] | select(.id==$wsid)' | jq .idx)
-NEXT_WSIDX=$((ORIG_WSIDX + 1))
+MOVE_WSIDX=$((ORIG_WSIDX - 1))
+if [[ MOVE_WSIDX -eq 0 ]]; then
+	MOVE_WSIDX=$((ORIG_WSIDX + 1))
+fi
 
 # Trick niri into right view alignment
 niri msg action move-column-left
 niri msg action set-column-width 80% # Needed to 'push' narrow windows to the right!
 niri msg action focus-column-right
-niri msg action move-window-to-workspace $NEXT_WSIDX --window-id $DUMMY_ID --focus false
+niri msg action move-window-to-workspace $MOVE_WSIDX --window-id $DUMMY_ID --focus false
 niri msg action close-window --id $DUMMY_ID
 
 # Re-focus original window if needed
