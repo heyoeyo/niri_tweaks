@@ -51,6 +51,7 @@ parser.add_argument(
     nargs=2,
     default=[2, 2],
     type=int,
+    metavar="column-index",
     help="Column start/end range where tiling should occur (default: 2 2), niri indexing starts at 1",
 )
 parser.add_argument(
@@ -69,6 +70,15 @@ parser.add_argument(
     "--autostack_last_column_only",
     action="store_true",
     help="Only enable auto-stacking when the new window is opened in the last-most column",
+)
+parser.add_argument(
+    "--autostack_into_row_gaps",
+    nargs="?",  # 0 or 1 arg
+    default=False,
+    const=True,
+    choices=["strict"],
+    metavar="'strict' : optional",
+    help="If set, windows can auto-stack into columns that are not full height (e.g. to fill gaps). Include 'strict' to only stack windows that would fit the gap",
 )
 parser.add_argument(
     "--action_maximize",
@@ -124,6 +134,7 @@ ARG_MAXIMIZE_SOLOS_ON_CLOSE = not args.no_maximize_on_close
 ARG_COLLAPSE_SOLOS_ON_OPEN = not args.no_collapse_on_open
 ARG_APPLY_TO_MOVED_WINDOWS = args.apply_to_moved_windows
 ARG_AUTOSTACK_LAST_ONLY = args.autostack_last_column_only
+ARG_AUTOSTACK_INTO_GAPS = args.autostack_into_row_gaps
 ARG_ACTION_MAXIMIZE = args.action_maximize
 STARTUP_DELAY_MS = args.delay_startup_ms
 ENABLE_CONFIG_RELOAD = not args.no_config_reload
@@ -359,6 +370,11 @@ def get_rows_per_column(multi_window_dict: dict[int, dict]) -> dict[int, int]:
     return col_count_per_idx
 
 
+def get_col_index(single_window_dict: dict) -> int:
+    """Helper used to simplify access to column x-index. Assumes a tiled window!"""
+    return single_window_dict["layout"]["pos_in_scrolling_layout"][0]
+
+
 def sigterm_to_interrupt(signum, frame):
     raise InterruptedError
 
@@ -377,6 +393,7 @@ base_configs_dict = {
         "allow_outer_stack": ARG_ALLOW_OUTER_STACK,
         "apply_to_moved_windows": ARG_APPLY_TO_MOVED_WINDOWS,
         "autostack_last_column_only": ARG_AUTOSTACK_LAST_ONLY,
+        "autostack_into_row_gaps": ARG_AUTOSTACK_INTO_GAPS,
         "right_to_left": ARG_ENABLE_RTL,
         "action_maximize": ARG_ACTION_MAXIMIZE,
         "disabled": False,
@@ -623,6 +640,7 @@ try:
         if new_win_dict is not None:
 
             # Get window location data
+            new_win_id = new_win_dict["id"]
             curr_wspace_id = new_win_dict["workspace_id"]
             if curr_wspace_id is None:  # This happens when dragging windows!
                 curr_wspace_id = focused_wspace_id
@@ -662,6 +680,8 @@ try:
             col_tiling_bounds = config["column_bounds"]
             num_stack = config["num_stack"]
             enable_rtl = config["right_to_left"]
+            enable_strict_fill_gaps = config["autostack_into_row_gaps"] == "strict"
+            enable_fill_gaps = enable_strict_fill_gaps or (config["autostack_into_row_gaps"] == True)
 
             # Try to handle toml formatting errors on column indexing
             if not isinstance(col_tiling_bounds, list) or len(col_tiling_bounds) != 2:
@@ -669,7 +689,7 @@ try:
                 col_tiling_bounds = [0, 1_000_000]
 
             # Get rows per column count on current workspace
-            new_win_col_idx = new_win_dict["layout"]["pos_in_scrolling_layout"][0]
+            new_win_col_idx = get_col_index(new_win_dict)
             rows_per_column_dict = get_rows_per_column(tile_win_dict)
             rows_per_column_dict[new_win_col_idx] -= 1  # Don't count the new window itself
             if rows_per_column_dict[new_win_col_idx] == 0:
@@ -701,12 +721,29 @@ try:
                 if side_col_idx not in rows_per_column_dict.keys():
                     continue
 
-                if start_colidx <= side_col_idx <= end_colidx and rows_per_column_dict[side_col_idx] < num_stack:
+                # Check for auto-stacking within column bounds
+                num_side_rows = rows_per_column_dict[side_col_idx]
+                if (num_side_rows < num_stack) and (start_colidx <= side_col_idx <= end_colidx):
                     need_shift_amt = shift_amt
                     break
 
+                # Special check for filling row gaps (e.g. if a single window is not filling column height)
+                if enable_fill_gaps and num_side_rows == 1:
+                    is_neighbour = lambda info: (info["id"] != new_win_id) and (get_col_index(info) == side_col_idx)
+                    nb_win_info = (info for info in tile_win_dict.values() if is_neighbour(info))
+                    nb_col_height = sum(info["layout"]["tile_size"][1] for info in nb_win_info)
+                    monitor_height = curr_monitor_dict["logical"]["height"]
+                    if enable_strict_fill_gaps:
+                        new_win_height = new_win_dict["layout"]["tile_size"][1]
+                        if (nb_col_height + new_win_height) <= monitor_height:
+                            need_shift_amt = shift_amt
+                            break
+                    elif nb_col_height < (monitor_height * 0.8):
+                        need_shift_amt = shift_amt
+                        break
+                pass
+
             # Handle shifting
-            new_win_id = new_win_dict["id"]
             is_focus_on_new_win = focused_win_id == new_win_id
             if need_shift_amt != 0:
                 shift_cmd = "ConsumeOrExpelWindowLeft" if need_shift_amt < 0 else "ConsumeOrExpelWindowRight"
