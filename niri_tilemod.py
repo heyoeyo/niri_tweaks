@@ -301,9 +301,9 @@ def update_working_config(base_config: dict[str, dict], update_config: dict[str,
     return new_config_dict
 
 
-def notify(message: str) -> None:
+def notify(message: str, timeout_ms: int | None = None) -> None:
     notify_title = f"{Path(__file__).name}"
-    subprocess.run(["notify-send", notify_title, message])
+    subprocess.run(["notify-send", notify_title, message, *([] if timeout_ms is None else ["-t", str(timeout_ms)])])
     return
 
 
@@ -543,7 +543,7 @@ try:
                     ok_config, loaded_config = load_user_config(ARG_CONFIG_PATH, HAS_TOML_LIB, raise_errors=False)
                     if ok_config:
                         all_configs_dict = update_working_config(base_configs_dict, loaded_config)
-                        notify("Config reloaded!")
+                        notify("Config reloaded!", timeout_ms=2500)
                 pass
             pass
 
@@ -658,6 +658,16 @@ try:
             # [A] has xy: (1,1), [B] *still* has xy: (2,1) and [C] *also* has xy: (2,1)
             # -> This will mess up neighbouring window checks if we're not careful!
 
+            # For clarity, get stacking config
+            col_tiling_bounds = config["column_bounds"]
+            num_stack = config["num_stack"]
+            enable_rtl = config["right_to_left"]
+
+            # Try to handle toml formatting errors on column indexing
+            if not isinstance(col_tiling_bounds, list) or len(col_tiling_bounds) != 2:
+                notify(f"Invalid column_bounds: {col_tiling_bounds}\nMust be a list of two numbers", timeout_ms=2500)
+                col_tiling_bounds = [0, 1_000_000]
+
             # Get rows per column count on current workspace
             new_win_col_idx = new_win_dict["layout"]["pos_in_scrolling_layout"][0]
             rows_per_column_dict = get_rows_per_column(tile_win_dict)
@@ -666,13 +676,11 @@ try:
                 rows_per_column_dict.pop(new_win_col_idx)
 
             # Figure out the surrounding column indices
-            col_tiling_bounds, num_stack = config["column_bounds"][0:2], config["num_stack"]
             side_col_iter = [(new_win_col_idx - 1, -1)]
             if config["allow_outer_stack"]:
                 side_col_iter.append((new_win_col_idx, +1))
 
             # Adjust column index checks if we're in right-to-left mode
-            enable_rtl = config["right_to_left"]
             if enable_rtl:
                 if config["allow_outer_stack"]:
                     side_col_iter[1] = (new_win_col_idx - 2, -3)
@@ -692,6 +700,7 @@ try:
             for side_col_idx, shift_amt in side_col_iter:
                 if side_col_idx not in rows_per_column_dict.keys():
                     continue
+
                 if start_colidx <= side_col_idx <= end_colidx and rows_per_column_dict[side_col_idx] < num_stack:
                     need_shift_amt = shift_amt
                     break
@@ -746,15 +755,15 @@ try:
 
             pass
 
-except ConnectionError as err:
-    notify(str(err))
-
 except (KeyboardInterrupt, InterruptedError):
     pass
 
+except ConnectionError as err:
+    notify(str(err))
+    raise err
+
 except Exception as err:
-    if NOTIFY_UNEXPECTED:
-        notify(f"Unexpected error:\n{err}")
+    notify(f"Unexpected error:\n{err}")
     raise err
 
 finally:
