@@ -99,9 +99,9 @@ def action_or_command(input_str: str, is_niri_action: bool) -> subprocess.Comple
     return niri_action(input_str) if is_niri_action else run_command(input_str)
 
 
-def notify(message: str) -> None:
+def notify(message: str, timeout_ms: int | None = None) -> None:
     notify_title = f"{Path(__file__).name}"
-    subprocess.run(["notify-send", notify_title, message])
+    subprocess.run(["notify-send", notify_title, message, *([] if timeout_ms is None else ["-t", str(timeout_ms)])])
     return
 
 
@@ -109,8 +109,8 @@ def notify(message: str) -> None:
 # %% Main code
 
 # Warning for missing input
-if DOUBLE_TAP_ACTION is None:
-    notify("Action not set! See:\nniri msg action --help")
+if (DOUBLE_TAP_ACTION is None) and (not ENABLE_NOTIFY):
+    notify("Action not set! See:\nniri msg action --help", timeout_ms=5000)
 
 # Make sure timing file exists
 FOLDER_PATH.mkdir(exist_ok=True)
@@ -126,7 +126,7 @@ last_time_ms = file_sys_stat.st_mtime_ns // 1_000_000
 curr_time_ms = int(dt.datetime.now().timestamp() * 1000)
 time_delta_ms = curr_time_ms - last_time_ms
 if ENABLE_NOTIFY:
-    notify(f"elapsed: {time_delta_ms}")
+    notify(f"elapsed: {time_delta_ms}", timeout_ms=1000)
 
 # Handle action triggers
 is_double_tap = LOWBOUND_TAP_WINDOW_MS < time_delta_ms < DOUBLE_TAP_WINDOW_MS

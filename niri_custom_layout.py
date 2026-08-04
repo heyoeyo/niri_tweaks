@@ -125,9 +125,9 @@ def shift_window_right(window_id: int) -> subprocess.CompletedProcess:
     return run_command(f"niri msg action consume-or-expel-window-right --id {window_id}")
 
 
-def notify(message: str, exit_script: bool = True) -> None:
+def notify(message: str, exit_script: bool = True, timeout_ms: int | None = 5000) -> None:
     notify_title = f"Error: {basename(__file__)}"
-    subprocess.run(["notify-send", notify_title, message])
+    subprocess.run(["notify-send", notify_title, message, *([] if timeout_ms is None else ["-t", str(timeout_ms)])])
     if exit_script:
         raise SystemExit()
     return
@@ -150,7 +150,7 @@ ROW_HEIGHT_PCTS = [ROW_HEIGHT_PCTS] if isinstance(ROW_HEIGHT_PCTS, int) else ROW
 # Sanity check
 NUM_LAYOUT_TILES = sum(ROWS_PER_COLUMN)
 if NUM_LAYOUT_TILES < 2:
-    notify("Layout must have 2 or more entries!")
+    notify("Layout must have 2 or more entries!", exit_script=True, timeout_ms=None)
 
 # Make sure column widths are set for each column
 need_width_adjustment = True

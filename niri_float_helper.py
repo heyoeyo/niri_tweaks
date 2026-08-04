@@ -254,9 +254,9 @@ def read_tmp_data(save_folder: Path, load_name: str, delete_on_read: bool = Fals
     return file_exists, load_data
 
 
-def notify(message: str) -> None:
+def notify(message: str, timeout_ms: int | None = None) -> None:
     notify_title = f"{Path(__file__).name}"
-    subprocess.run(["notify-send", notify_title, message])
+    subprocess.run(["notify-send", notify_title, message, *([] if timeout_ms is None else ["-t", str(timeout_ms)])])
     return
 
 
@@ -265,7 +265,7 @@ def notify(message: str) -> None:
 
 # Meant for debugging. This runs slurp in drawing mode and prints out the 'x y w h' region that is drawn
 if ENABLE_REGION_PRINTOUT:
-    notify("Draw region to get 'x y w h' format")
+    notify("Draw region to get 'x y w h' format", timeout_ms=5000)
     (box_x, box_y), (box_w, box_h) = run_slurp([], *SLURP_ARGS)
     monitor_info = get_focused_monitor()
     monitor_sizing_info = monitor_info["logical"]
@@ -369,7 +369,7 @@ if is_missing_offset:
         # Provide feedback to user & store offset for re-use
         msg = ["Missing X/Y offsets!", "To avoid warning on start-up, add flags:", f"-xo {zeroed_x} -yo {zeroed_y}"]
         print(*msg, sep="\n")
-        notify("\n".join(msg))
+        notify("\n".join(msg), timeout_ms=5000)
         write_tmp_data(STATE_FOLDER_PATH, tmp_xy_filename, (X_OFFSET, Y_OFFSET))
 
 
@@ -435,7 +435,7 @@ for region_str in REGIONS:
 # Get box selection from slurp
 (box_x, box_y), (box_w, box_h) = run_slurp(slurp_region_strs, *SLURP_ARGS)
 if box_w < SIZE_THRESHOLD or box_h < SIZE_THRESHOLD:
-    notify(f"Error, region is too small!\nwh = ({box_w}, {box_h})")
+    notify(f"Error, region is too small!\nwh = ({box_w}, {box_h})", timeout_ms=5000)
     raise SystemExit()
 
 # Record window width for restoring on un-float
