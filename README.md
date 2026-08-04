@@ -71,20 +71,21 @@ Settings configured through script flags will apply to all workspaces/monitors. 
 ```toml
 [default]
 num_stack = 2
-column_bounds = [2, 2] # niri indexing starts at 1
+column_bounds = [2, 2] # column start/end range where auto-stacking occurs
 maximize_solos_on_open = true
 maximize_solos_on_close = true
 collapse_solos_on_open = true
 allow_outer_stack = true
 apply_to_moved_windows = false
 autostack_last_column_only = false
+autostack_into_row_gaps = false # or true or "strict"
 right_to_left = false
 action_maximize = "MaximizeColumn" # or "MaximizeWindowToEdges" or "FullscreenWindow"
 disabled = false
 
 # Always stack 2x2x2x2... on workspace index 2
 [workspaces.idx.2]
-column_bounds = [0, 100]
+column_bounds = [1, 255] # Auto-stack active on all columns
 num_stack = 2
 
 # Open right-to-left on workspace ID 3, with no stacking
