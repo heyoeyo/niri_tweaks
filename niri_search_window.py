@@ -8,14 +8,14 @@
 # ```
 # Currently this does not support any commandline arguments.
 
-from dataclasses import dataclass
 import io
-import socket
-import os
-import subprocess
 import json
+import os
 import re
-from typing import TypedDict, Self, TypeAlias, Literal, Any
+import socket
+import subprocess
+from dataclasses import dataclass
+from typing import Any, Literal, Self, TypeAlias, TypedDict
 
 #region typechecking helpers
 
