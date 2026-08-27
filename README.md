@@ -14,6 +14,7 @@ This repo holds some basic scripts that provide additional functionality for the
 - [niri_overview_bind.py](#niri_overview_bindpy)
 - [niri_parse_keybinds.py](#niri_parse_keybindspy)
 - [niri_search_window.py](#niri_search_windowpy)
+- [niri_search_command.py](#niri_search_commandpy)
 - [niri_unstack_all.py](#niri_unstack_allpy)
 - [niri_doubletap.py](#niri_doubletappy)
 - [niri_right_align.sh](#niri_right_alignsh)
@@ -380,6 +381,22 @@ Alt+Tab { spawn-sh "python3 /path/to/niri_search_window.py"; }
 ```
 
 Note that the built-in (graphical) alt-tab functionality is available on both `Alt+Tab` and `Mod+Tab`, so it's possible to replace one shortcut with this script while keeping the built-in option on the other.
+
+<br>
+
+## niri_search_command.py
+
+This script is meant to help quickly find rarely used Niri commands.
+When called it uses [fuzzel](https://codeberg.org/dnkl/fuzzel) to allow the user to select a command.
+Once a command is selected it will be executed. Certain commands require
+additional user input in which case this script will use `fuzzel` a second time
+to query for more information.
+
+```kdl
+Mod+Slash { spawn-sh "python3 /path/to/niri_search_command.py"; }
+```
+
+Currently this does not support any commandline arguments.
 
 <br>
 
