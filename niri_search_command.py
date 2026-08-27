@@ -218,16 +218,17 @@ class Fuzzel:
     """Allow selection of commands and entering of text via fuzzel."""
 
     @staticmethod
-    def pick(options: dict[str,T]) -> T:
+    def pick(options: dict[str,T], sorted_keys: list[str] | None = None) -> T:
         """Select one of multiple Options.
 
         Raises
         ------
         FuzzelNothingSelected
         """
+        keys = sorted_keys or sorted(options.keys())
         fuzzel = subprocess.run(
             ["fuzzel", "--dmenu"],
-            input="\n".join(options),
+            input="\n".join(keys),
             text=True,
             capture_output=True,
         )
@@ -350,11 +351,15 @@ class WorkspaceTargetAction(NiriAction, register=False):
         return f"{name} ({w.get('id')})"
 
     def pick_workspace(self, niri: NiriSocket) -> int:
-        workspaces = {
+        workspaces: dict[str,int] = {
             self._format_workspace_name(w):w.get('id')
             for w in niri.workspaces()
         }
-        return Fuzzel.pick(workspaces)
+        keys: list[str] = sorted(
+            workspaces.keys(),
+            key = lambda k: workspaces.get(k,-1)
+        )
+        return Fuzzel.pick(workspaces,keys)
 
     def get_args(self, niri: NiriSocket) -> dict:
         return {"reference": {"Id": self.pick_workspace(niri)}}
