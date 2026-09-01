@@ -148,36 +148,33 @@ By default, triggering the script when windows are already in the correct layout
 
 ## niri_spawnjump.py
 
-This script acts as an alternative to the `spawn` command in niri. It can be used to spawn an application, but if the application is already open it will jump to the existing instance. If there are multiple instances, then it will cycle between them. By default this works across all workspaces and for both floating and tiled windows, though this can be adjusted with flags. To see a list of available modifier flags, run:
+This script is an alternative to the `spawn` command in niri. It behaves like a 'spawn-or-jump-to' command, for example, if an application is already open this script will jump to the application instead of spawning another instance. If there are multiple instances open, it will cycle between them. By default this works across all workspaces and for both floating and tiled windows, though this can be adjusted with flags. To see a list of available modifier flags, run:
 
 ```bash
 python3 /path/to/niri_spawnjump.py --help
 ```
 
-For example, `-w` will cause jump/cycling behavior to only search on the current workspace, which has the effect of creating one instance per workspace. The `-l` flag can be used to set a spawn limit >1, for example `-l 3` would allow three instances to be spawned before jumping/cycling between them. If having a window limit is sometimes a problem, the `-o` flag can be set which allows for unconditionally spawning windows when the overview is open.
+For example, `-w` will cause jump/cycling behavior to only search on the current workspace, which has the effect of creating one instance per workspace. The `--limit` (or `-l`) flag can be used to set a spawn limit >1, for example `-l 3` would allow three instances to be spawned before jumping/cycling between them. If having a window limit is sometimes a problem, the `-o` flag can be set, which allows you to ignore the spawn limit when the overview is open.
 
 As an alternative to cycling, the `-p` and `-s` flags can be used to 'pull' and 'push' (respectively) an existing instance instead of jumping to it. This results in behavior similar to the ability to _minimize_ a window from more conventional windowing systems. This seems to make sense for binding to a file explorer, for example.
 
 ### Usage
 
-To bind to a keypress, you need to add a line to the niri config. Flags for the script can be added at the end, like:
+This script is meant to be set up as a keybind in your niri config. The basic structure requires providing the command to launch the application, followed (optionally) by it's `app-id`, with configuration flags for the script added at the end, like:
 
 ```kdl
-Mod+T { spawn-sh "python3 /path/to/niri_spawnjump.py alacritty -w -p -s"; }
+Mod+T { spawn-sh "python3 /path/to/niri_spawnjump.py <launch command> <app-id (optional)> -w -p -s"; }
 ```
 
 For flatpaks, use the entire run command (inside of quotes to indicate it's one command):
 
 ```kdl
-Mod+B { spawn-sh "python3 /path/to/niri_spawnjump.py 'flatpak run app.zen_browser.app'"; }
-```
-By default, this will search for existing instances based on the `app-id` that niri assigns, assuming this matches the name used to run the application (e.g. `alacritty` or `app.zen_browser.app`). Some applications seem to use a different name, like the flatpak for Chromium, which has an `app-id` of `chromium-browser`. For these applications, the `app-id` can be passed as a second argument:
-
-```kdl
-Mod+B { spawn-sh "python3 /path/to/niri_spawnjump.py 'flatpak run org.chromium.Chromium' 'chromium-browser'"; }
+Mod+B { spawn-sh "python3 /path/to/niri_spawnjump.py 'flatpak run org.gnome.Sudoku'"; }
 ```
 
-To help figure out the `app-id` for these sorts of applications, run this script without any arguments. The `app-id` of the currently focused window will then be printed out in the terminal.
+If an `app-id` isn't provided (as above), the script will guess at it using the provided command. It can be left out in the example above, because the `app-id` matches the run command (e.g. `org.gnome.Sudoku`).
+
+The `app-id` is how the script decides if an application is already open, so if it isn't set properly, the 'jump to' behavior of the script won't work properly. Usually the `app-id` matches the launch command, however for cases where it doesn't and you don't know what it is, try running the script in a terminal without any arguments. This will continuously print out the `app-id` of any focused window. Alternatively, you can also use the [window details](#niri_window_detailssh) script to get this information.
 
 ### Scratchpad
 

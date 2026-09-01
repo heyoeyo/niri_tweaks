@@ -75,6 +75,8 @@ SPAWN_IN_OVERVIEW = args.spawn_in_overview
 # Sanity checks
 assert not (NO_FLOATS and NO_TILES), "Cannot disable checks for floating & tiled windows (enable only one or neither)"
 assert not (ALWAYS_SPAWN and not ENABLE_SPAWN), "Cannot always spawn & disable spawning at the same time!"
+if COMMAND is not None:
+    COMMAND = COMMAND.strip()
 
 # Auto-config for push/pull to scratchpad, if provided
 if SCRATCHPAD is not None:
@@ -298,7 +300,7 @@ if enable_appid_inspection:
 
 # Check if the target app-id is already opened
 all_win_list = get_windows_list()
-target_win_list = [w for w in all_win_list if str(w["app_id"]).lower() == TARGET_APP_ID.lower()]
+target_win_list = [w for w in all_win_list if str(w["app_id"]).lower().endswith(TARGET_APP_ID.lower())]
 
 # Handle special overview mode toggle
 if SPAWN_IN_OVERVIEW and check_is_overview_open():
