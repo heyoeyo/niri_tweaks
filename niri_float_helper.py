@@ -28,7 +28,7 @@ default_regions = [
     "-20 20 35% 45%",
     "-20 -20 35% 45%",
 ]
-default_folder_path = Path(environ.get("XDG_RUNTIME_DIR", "/tmp")) / "niri_float_helper"
+default_folder_path = Path(environ.get("XDG_RUNTIME_DIR", "/tmp")) / "niri_tweaks"
 
 # Define script arguments
 parser = argparse.ArgumentParser(description="Script which provides additional functionality when floating windows")
@@ -49,20 +49,21 @@ parser.add_argument(
     "-r", "--region_printout", action="store_true", help="If set, run slurp and print out region in 'x y w h' format"
 )
 parser.add_argument(
-    "-xo",
-    "--x_offset",
+    "-i",
+    "--default_region_idx",
     type=int,
     default=None,
-    help="Specify x-offset. Required for proper window-move alignment with slurp",
+    help="Specify a default region (as an index) to use when re-floating (e.g. double-tapping to float)",
 )
 parser.add_argument(
-    "-yo",
-    "--y_offset",
+    "-o",
+    "--offset_xy",
+    nargs=2,
     type=int,
     default=None,
-    help="Specify y-offset. Required for proper window-move alignment with slurp",
+    help="Window positioning offset. Required for proper window-move alignment with slurp",
 )
-parser.add_argument("-t", "--size_threshold", type=int, default=64, help="Minimum allowed region size")
+parser.add_argument("-t", "--size_threshold", type=int, default=128, help="Minimum allowed region size (default: 128)")
 parser.add_argument(
     "-nw", "--no_restore_width", action="store_true", help="Disables restoration of window width when un-floating"
 )
@@ -113,7 +114,7 @@ parser.add_argument(
     "--folder_path",
     type=str,
     default=str(default_folder_path),
-    help=f"Folder path used to store state data (default: {default_folder_path})",
+    help=f"Folder path used to store XY offsets & window size data (default: {default_folder_path})",
 )
 
 
@@ -122,8 +123,8 @@ args = parser.parse_args()
 REGIONS = args.regions
 ENABLE_DRAW = args.draw_region
 ENABLE_REGION_PRINTOUT = args.region_printout
-X_OFFSET = args.x_offset
-Y_OFFSET = args.y_offset
+XY_OFFSET = args.offset_xy
+DEFAULT_FLOAT_REGION = args.default_region_idx
 SIZE_THRESHOLD = max(1, args.size_threshold)
 ENABLE_WIDTH_RESTORE = not args.no_restore_width
 ENABLE_UNFLOAT = not args.no_unfloat
@@ -134,11 +135,9 @@ SLURP_SELECT_COL = args.selection_color
 SLURP_OPTION_COL = args.option_box_color
 SLURP_WEIGHT = args.border_weight
 SLURP_DIMENSIONS = args.show_dimensions
-STATE_FOLDER_PATH = Path(args.folder_path)
+XYOFFSET_FOLDER_PATH = Path(args.folder_path)
 
 # For clarity
-X_OFFSET = max(0, X_OFFSET) if X_OFFSET is not None else None
-Y_OFFSET = max(0, Y_OFFSET) if Y_OFFSET is not None else None
 NEED_REGION_PIXEL_SCALING = any("%" in r_str for r_str in REGIONS)
 if ENABLE_DRAW:
     REGIONS = []
@@ -146,6 +145,9 @@ if ENABLE_DRAW:
 if ENABLE_REGION_PRINTOUT:
     SLURP_DIMENSIONS = True
 SLURP_ARGS = (SLURP_BG_COL, SLURP_BORDER_COL, SLURP_SELECT_COL, SLURP_OPTION_COL, SLURP_WEIGHT, SLURP_DIMENSIONS)
+
+# Set up folder for holding window state (e.g. width/height prior to floating, to be able to restore on tiling)
+STATE_FOLDER_PATH = XYOFFSET_FOLDER_PATH.joinpath("niri_float_helper")
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -188,19 +190,19 @@ def get_focused_monitor() -> dict:
 
 
 def run_slurp(
-    predefined_regions: list[str],
+    regions_xywh: list[tuple[int, int, int, int]],
     bg_color: str = "FFFFFF30",
     border_color: str = "000000CC",
     select_color: str = "CC0077A0",
     option_color: str = "FFFFFF70",
     border_weight: int = 4,
     show_dimensions: bool = False,
-) -> tuple[tuple[int, int], tuple[int, int]]:
+) -> tuple[int, int, int, int]:
     """Helper used to run slurp to get region coordinates. Returns: (x, y), (w, h)"""
 
     # Merge regions into a single string for input to slurp
-    region_str = "\n".join(predefined_regions)
-    use_regions = len(predefined_regions) > 0
+    region_str = "\n".join(f"{x},{y} {w}x{h}" for (x, y, w, h) in regions_xywh)
+    use_regions = len(regions_xywh) > 0
 
     # Build up slurp call
     args = ["slurp", "-b", bg_color, "-c", border_color, "-s", select_color, "-w", str(border_weight)]
@@ -222,7 +224,19 @@ def run_slurp(
     xy_str, wh_str = raw_result.stdout.strip().split(" ")
     x_int, y_int = (int(val) for val in xy_str.split(","))
     w_int, h_int = (int(val) for val in wh_str.split("x"))
-    return (x_int, y_int), (w_int, h_int)
+    return (x_int, y_int, w_int, h_int)
+
+
+def move_float_to_region(window_id: int, region_xywh: tuple[int, int, int, int], xy_offset: tuple[int, int]):
+    """Helper used to position floating windows into a defined region (with x/y offsets taken int account)"""
+    x, y, w, h = region_xywh
+    x_correct = max(0, x - xy_offset[0])
+    y_correct = max(0, y - xy_offset[1])
+    niri_action(f"move-floating-window --id {window_id} -x {x_correct} -y {y_correct}")
+    niri_action(f"move-window-to-floating --id {window_id}")
+    niri_action(f"set-window-width {w} --id {window_id}")
+    niri_action(f"set-window-height {h} --id {window_id}")
+    return
 
 
 def parse_size_str(size_str: str) -> tuple[bool, float]:
@@ -232,9 +246,75 @@ def parse_size_str(size_str: str) -> tuple[bool, float]:
     return is_pct, size_float
 
 
+def parse_region_defs(region_xywh_strs: list[str], xy_offset: tuple[int, int]) -> list[tuple[int, int, int, int]]:
+    """
+    Helper used to parse region definitions into (x,y,width,height) format,
+    where the region definitions may contain a mix of pixel values, percentage
+    values as well as negative (meaning defined from far edge) values.
+    Returns:
+        regions_xywh (all values in pixels)
+    """
+
+    # Get monitor sizing if needed for handling regions given as % values
+    monitor_w, monitor_h = 0, 0
+    need_pixel_scaling = any("%" in reg_str for reg_str in region_xywh_strs) > 0
+    if need_pixel_scaling:
+        monitor_info = get_focused_monitor()
+        monitor_sizing_info = monitor_info["logical"]
+        monitor_w, monitor_h = monitor_sizing_info["width"], monitor_sizing_info["height"]
+
+    # Parse region data
+    x_offset, y_offset = xy_offset
+    regions_xywh = []
+    for region_str in region_xywh_strs:
+
+        # Check inputs are reasonable
+        xywh_str = region_str.split(" ")
+        if len(xywh_str) != 4:
+            notify(f"Error specifying region, expecting 4 entries, got:\n{xywh_str}")
+            continue
+
+        # Parse input strings into numbers (given as strings like '470' or '50%')
+        x_str, y_str, w_str, h_str = xywh_str
+        try:
+            is_w_pct, w_float = parse_size_str(w_str)
+            is_h_pct, h_float = parse_size_str(h_str)
+            is_x_pct, x_float = parse_size_str(x_str)
+            is_y_pct, y_float = parse_size_str(y_str)
+        except ValueError:
+            notify(f"Error parsing region, expected 4 numbers, got:\n{xywh_str}")
+            continue
+
+        # Get region w/h, which we need for relative positioning
+        w_px = abs(w_float * (monitor_w - x_offset) if is_w_pct else w_float)
+        h_px = abs(h_float * (monitor_h - y_offset) if is_h_pct else h_float)
+
+        # Handle x-positioning
+        if is_x_pct:
+            xa, xb = x_offset, monitor_w - w_px
+            x_pct = 1.0 + x_float if x_float < 0 else x_float
+            x_px = xa * (1 - x_pct) + xb * x_pct
+        else:
+            x_px = (monitor_w - w_px + x_float) if x_float < 0 else (x_float + x_offset)
+
+        # Handle y-positioning
+        if is_y_pct:
+            ya, yb = y_offset, monitor_h - h_px
+            y_pct = 1.0 + y_float if y_float < 0 else y_float
+            y_px = ya * (y_pct) + yb * y_pct
+        else:
+            y_px = (monitor_h - h_px + y_float) if y_float < 0 else (y_float + y_offset)
+
+        # Form final slurp-format string
+        x_px, y_px, w_px, h_px = (max(0, round(val)) for val in (x_px, y_px, w_px, h_px))
+        regions_xywh.append((x_px, y_px, w_px, h_px))
+
+    return regions_xywh
+
+
 def write_tmp_data(save_folder: Path, save_name: str, data: tuple | list) -> None:
     """Write temporary (json-friendly) data. Used for storing offsets/window state"""
-    save_folder.mkdir(exist_ok=True)
+    save_folder.mkdir(exist_ok=True, parents=True)
     tmp_file = save_folder / save_name
     with open(tmp_file, "w") as outfile:
         json.dump(data, outfile, separators=(",", ":"))
@@ -266,7 +346,7 @@ def notify(message: str, timeout_ms: int | None = None) -> None:
 # Meant for debugging. This runs slurp in drawing mode and prints out the 'x y w h' region that is drawn
 if ENABLE_REGION_PRINTOUT:
     notify("Draw region to get 'x y w h' format", timeout_ms=5000)
-    (box_x, box_y), (box_w, box_h) = run_slurp([], *SLURP_ARGS)
+    box_x, box_y, box_w, box_h = run_slurp([], *SLURP_ARGS)
     monitor_info = get_focused_monitor()
     monitor_sizing_info = monitor_info["logical"]
     monitor_w, monitor_h = monitor_sizing_info["width"], monitor_sizing_info["height"]
@@ -311,14 +391,25 @@ if ENABLE_UNFLOAT or ENABLE_REFLOAT:
                     niri_action(f"set-window-width {prev_wh[0]} --id {retrigger_id}")
 
             elif ENABLE_REFLOAT and not is_retrigger_floating:
-                # Re-float window & record width for restore
-                niri_action(f"move-window-to-floating --id {retrigger_id}")
+                # Record width for restore & re-float window
                 if ENABLE_WIDTH_RESTORE:
                     rt_win_width, rt_win_height = retrigger_win_info["layout"]["window_size"]
                     write_tmp_data(STATE_FOLDER_PATH, f"{retrigger_id}.state", (rt_win_width, rt_win_height))
+                niri_action(f"move-window-to-floating --id {retrigger_id}")
 
+                # Move float to a default region if specified
+                if DEFAULT_FLOAT_REGION is not None:
+                    xy_offset = (0, 0) if XY_OFFSET is None else XY_OFFSET
+                    regions_xywh = parse_region_defs(REGIONS, xy_offset)
+                    region_idx = max(0, min(DEFAULT_FLOAT_REGION, len(regions_xywh)))
+                    box_xywh = regions_xywh[region_idx]
+                    move_float_to_region(retrigger_id, box_xywh, xy_offset)
+                pass
+            pass
+
+        # Stop here regardless, since we've just closed slurp (don't want to immediately re-open on the same call )
         raise SystemExit()
-
+    pass
 
 # ---------------------------------------------------------------------------------------------------------------------
 # %% Handle missing offsets
@@ -335,14 +426,12 @@ win_id = win_info["id"]
 # This leads to a discrepancy between slurp coords (which are global) and niri.
 # Fortuneately, niri *does* report the global coords when checking window state,
 # which gives us a way to determine the offset, which is what we're doing here.
-is_missing_offset = X_OFFSET is None or Y_OFFSET is None
+is_missing_offset = XY_OFFSET is None
 if is_missing_offset:
     tmp_xy_filename = "xyoffsets.info"
-    ok_tmp_offsets, tmp_xy_offsets = read_tmp_data(STATE_FOLDER_PATH, tmp_xy_filename)
+    ok_tmp_offsets, tmp_xy_offsets = read_tmp_data(XYOFFSET_FOLDER_PATH, tmp_xy_filename)
     if ok_tmp_offsets and isinstance(tmp_xy_offsets, list):
-        tmp_x_offset, tmp_y_offset = tmp_xy_offsets
-        X_OFFSET = tmp_x_offset if X_OFFSET is None else X_OFFSET
-        Y_OFFSET = tmp_y_offset if Y_OFFSET is None else Y_OFFSET
+        XY_OFFSET = tmp_xy_offsets
         is_missing_offset = False
 
     else:
@@ -351,9 +440,7 @@ if is_missing_offset:
         niri_action(f"move-floating-window --id {win_id} -x 0 -y 0")
         zeroed_win_info = get_focused_window()
         zeroed_x, zeroed_y = zeroed_win_info["layout"]["tile_pos_in_workspace_view"]
-        zeroed_x, zeroed_y = [int(value) for value in (zeroed_x, zeroed_y)]
-        X_OFFSET = zeroed_x if X_OFFSET is None else X_OFFSET
-        Y_OFFSET = zeroed_y if Y_OFFSET is None else Y_OFFSET
+        XY_OFFSET = [int(value) for value in (zeroed_x, zeroed_y)]
 
         # Undo effect of zeroing, in case user wants to cancel
         orig_is_floating = win_info["is_floating"]
@@ -370,72 +457,20 @@ if is_missing_offset:
         msg = ["Missing X/Y offsets!", "To avoid warning on start-up, add flags:", f"-xo {zeroed_x} -yo {zeroed_y}"]
         print(*msg, sep="\n")
         notify("\n".join(msg), timeout_ms=5000)
-        write_tmp_data(STATE_FOLDER_PATH, tmp_xy_filename, (X_OFFSET, Y_OFFSET))
-
-
-# ---------------------------------------------------------------------------------------------------------------------
-# %% Parse regions
-
-# Get monitor sizing if needed for handling regions given as % values
-monitor_w, monitor_h = 0, 0
-if NEED_REGION_PIXEL_SCALING:
-    monitor_info = get_focused_monitor()
-    monitor_sizing_info = monitor_info["logical"]
-    monitor_w, monitor_h = monitor_sizing_info["width"], monitor_sizing_info["height"]
-
-# Parse region data
-slurp_region_strs = []
-for region_str in REGIONS:
-
-    # Check inputs are reasonable
-    xywh_str = region_str.split(" ")
-    if len(xywh_str) != 4:
-        notify(f"Error specifying region, expecting 4 entries, got:\n{xywh_str}")
-        continue
-
-    # Parse input strings into numbers (given as strings like '470' or '50%')
-    x_str, y_str, w_str, h_str = xywh_str
-    try:
-        is_w_pct, w_float = parse_size_str(w_str)
-        is_h_pct, h_float = parse_size_str(h_str)
-        is_x_pct, x_float = parse_size_str(x_str)
-        is_y_pct, y_float = parse_size_str(y_str)
-    except ValueError:
-        notify(f"Error parsing region, expected 4 numbers, got:\n{xywh_str}")
-        continue
-
-    # Get region w/h, which we need for relative positioning
-    w_px = abs(w_float * (monitor_w - X_OFFSET) if is_w_pct else w_float)
-    h_px = abs(h_float * (monitor_h - Y_OFFSET) if is_h_pct else h_float)
-
-    # Handle x-positioning
-    if is_x_pct:
-        xa, xb = X_OFFSET, monitor_w - w_px
-        x_pct = 1.0 + x_float if x_float < 0 else x_float
-        x_px = xa * (1 - x_pct) + xb * x_pct
-    else:
-        x_px = (monitor_w - w_px + x_float) if x_float < 0 else (x_float + X_OFFSET)
-
-    # Handle y-positioning
-    if is_y_pct:
-        ya, yb = Y_OFFSET, monitor_h - h_px
-        y_pct = 1.0 + y_float if y_float < 0 else y_float
-        y_px = ya * (y_pct) + yb * y_pct
-    else:
-        y_px = (monitor_h - h_px + y_float) if y_float < 0 else (y_float + Y_OFFSET)
-
-    # Form final slurp-format string
-    x_px, y_px, w_px, h_px = (max(0, round(val)) for val in (x_px, y_px, w_px, h_px))
-    slurp_region_strs.append(f"{x_px},{y_px} {w_px}x{h_px}")
+        write_tmp_data(XYOFFSET_FOLDER_PATH, tmp_xy_filename, XY_OFFSET)
 
 
 # ---------------------------------------------------------------------------------------------------------------------
 # %% Float-to-region
 
 # Get box selection from slurp
-(box_x, box_y), (box_w, box_h) = run_slurp(slurp_region_strs, *SLURP_ARGS)
-if box_w < SIZE_THRESHOLD or box_h < SIZE_THRESHOLD:
-    notify(f"Error, region is too small!\nwh = ({box_w}, {box_h})", timeout_ms=5000)
+regions_xywh = parse_region_defs(REGIONS, XY_OFFSET)
+box_xywh = run_slurp(regions_xywh, *SLURP_ARGS)
+if box_xywh[2] < SIZE_THRESHOLD or box_xywh[3] < SIZE_THRESHOLD:
+    notify(
+        f"Error, region is too small!\nwh = ({box_xywh[2]}, {box_xywh[3]}) < {SIZE_THRESHOLD}",
+        timeout_ms=5000,
+    )
     raise SystemExit()
 
 # Record window width for restoring on un-float
@@ -443,15 +478,8 @@ if not win_info["is_floating"] and ENABLE_WIDTH_RESTORE:
     win_width, win_height = win_info["layout"]["window_size"]
     write_tmp_data(STATE_FOLDER_PATH, f"{win_id}.state", (win_width, win_height))
 
-# Handle float-to-region
-x_correct = max(0, box_x - X_OFFSET)
-y_correct = max(0, box_y - Y_OFFSET)
-niri_action(f"move-floating-window --id {win_id} -x {x_correct} -y {y_correct}")
-niri_action(f"move-window-to-floating --id {win_id}")
-niri_action(f"set-window-width {box_w} --id {win_id}")
-niri_action(f"set-window-height {box_h} --id {win_id}")
-
-# Handle potential workspace change
+# Handle movement & potential workspace change (e.g. user changed workspace while slurp was open)
+move_float_to_region(win_id, box_xywh, XY_OFFSET)
 wspace_info = get_focused_workspace()
 if wspace_info["id"] != win_info["workspace_id"]:
     niri_action(f"move-window-to-workspace {wspace_info['idx']} --window-id {win_id}")
