@@ -34,7 +34,9 @@ All scripts are compatible with the newest release of niri ([v26.04](https://git
   <img src="https://github.com/user-attachments/assets/1fc67144-5eaf-4145-8668-ccb84471df8c" width=400 height=167>
 </p>
 
-This script auto-stacks windows up to a (configurable) number of rows. It also supports 'auto-maximize single windows' and 'right-to-left' behaviors. It relies on the niri [event stream](https://github.com/niri-wm/niri/wiki/IPC#event-stream).
+This script auto-stacks windows up to a (configurable) number of rows before scrolling. It's meant for those who like auto-tiling, but find it gets too cramped as many (e.g. 4+) windows are opened.
+
+It also supports 'auto-maximize single windows' and 'right-to-left' behaviors. It relies on the niri [event stream](https://github.com/niri-wm/niri/wiki/IPC#event-stream).
 
 ### Quick test run
 
@@ -42,7 +44,7 @@ If you'd like to quickly try this out, use the following terminal command:
 ```bash
 curl https://raw.githubusercontent.com/heyoeyo/niri_tweaks/refs/heads/main/niri_tilemod.py | python3
 ```
-This downloads the script text and pipes it straight into python to run it. After doing this, try opening 3 or more windows to see the effect. Hitting ctrl+c or closing the terminal will disable the effect. Note that if you create a config file (as described below), it will take affect when running this command.
+This downloads the [script text](https://raw.githubusercontent.com/heyoeyo/niri_tweaks/refs/heads/main/niri_tilemod.py) and pipes it straight into python to run it. After doing this, try opening 3 or more windows to see the effect. Use ctrl+c or close the terminal to disable the effect. Note that if you create a config file (as described below), it will take affect when running this command.
 
 ### Permanent use
 
@@ -55,7 +57,7 @@ You'll have to log-out/log-in for this to take effect.
 
 ### Configuration
 
-There are many configuration options, which can be seen by running the script in a terminal with the `--help` flag:
+Configuration options can be seen by running the script in a terminal with the `--help` flag:
 
 ```bash
 python3 /path/to/niri_tilemod.py --help
@@ -89,13 +91,13 @@ disabled = false
 column_bounds = [1, 255] # Auto-stack active on all columns
 num_stack = 2
 
-# Open right-to-left on workspace ID 3, with no stacking
-[workspaces.id.3]
+# Open right-to-left on monitor named 'HDMI-A-5' and disable stacking
+[outputs.name.HDMI-A-5]
 right_to_left = true
 num_stack = 0
 
-# Disable tilemod on monitor named 'HDMI-A-7'
-[outputs.name.HDMI-A-7]
+# Disable tilemod on workspace with ID 3
+[workspaces.id.3]
 disabled=true
 ```
 </details>
