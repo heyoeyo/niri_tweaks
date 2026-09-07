@@ -15,6 +15,7 @@ This repo holds some basic scripts that provide additional functionality for the
 - [niri_parse_keybinds.py](#niri_parse_keybindspy)
 - [niri_search_window.py](#niri_search_windowpy)
 - [niri_search_command.py](#niri_search_commandpy)
+- [niri_focus_float_shifter.sh](#niri_focus_float_shiftersh)
 - [niri_unstack_all.py](#niri_unstack_allpy)
 - [niri_doubletap.py](#niri_doubletappy)
 - [niri_right_align.sh](#niri_right_alignsh)
@@ -408,6 +409,22 @@ Mod+Z { spawn-sh "python3 /path/to/niri_unstack_all.py"; }
 ```
 
 Include the `-c` flag to cycle all column widths or `-c 25` to set all columns to a 25% width (or any other proportion). The `-r` flag can be added to reset all window heights.
+
+<br>
+
+## niri_focus_float_shifter.sh
+
+The idea for this script comes from [issue #15](https://github.com/heyoeyo/niri_tweaks/issues/15#issuecomment-5497850540). It's meant to replace the default `focus-column-left/-right` commands and has the effect of shifting any floating windows to the opposite side of the screen (i.e. to get them out of the way). For example, when focusing left, all floating windows move to the right and vice versa.
+
+It can be set up as a keybind like:
+```kdl
+Mod+Left  { spawn-sh "bash /path/to/niri_focus_float_shifter.sh l 50 50"; }
+Mod+Right { spawn-sh "bash /path/to/niri_focus_float_shifter.sh r 50 50"; }
+```
+
+The first argument (`l` or `r` above) specifies the focus change direction. If two numbers follow this (e.g. `50 50`), then they're interpreted as the left & right placement for shifted windows.
+
+If only a single number is given (or no numbers), then the script will instead 'reflect' windows around the center of the screen. So for example, windows near the center will move less than windows near the edges when switching focus. In this case, the provided number will set the size of a 'deadzone' in the middle of the screen, so that windows in this region won't move at all on focus changes.
 
 <br>
 
