@@ -9,6 +9,7 @@ This repo holds some basic scripts that provide additional functionality for the
 - [niri_maximize_helper.py](#niri_maximize_helperpy)
 - [niri_workspace_helper.py](#niri_workspace_helperpy)
 - [niri_float_helper.py](#niri_float_helperpy)
+- [niri_move_window_helper.py](#niri_move_window_helperpy)
 - [niri_close_helper.sh](#niri_close_helpersh)
 - [niri_peekaboo.py](#niri_peekaboopy)
 - [niri_overview_bind.py](#niri_overview_bindpy)
@@ -285,7 +286,40 @@ For example, one helpful flag is `-r` which can be used to print drawn region si
 <details>
 <summary>Note on X/Y Offsets</summary>
 
-Niri window movement uses a co-ordinate system that's offset from the full display (and `slurp`), which can lead to errors in window positioning. These offsets are determined on first run and recorded in a temporary file, but this can lead to some jittering. To prevent this from happening, provide the offsets to the script using the `-xo` and `-yo` flags. A notification is given to report the value of the offsets on first run, if missed, they'll be available in a temporary file: `/run/user/1000/niri_tweaks/xyoffsets.info`
+Niri window movement uses a co-ordinate system that's offset from the full display (and `slurp`), which can lead to errors in window positioning. These offsets are determined on first run and recorded in a temporary file, but this can lead to some jittering. To prevent this from happening, provide the offsets to the script using the `-o` flag. A notification is given to report the value of the offsets on first run, if missed, they'll be available in a temporary file: `/run/user/1000/niri_tweaks/xyoffsets.info`
+
+</details>
+
+<br>
+
+## niri_move_window_helper.py
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/95a12643-0d2b-4183-a086-9ae1b144ed1d" width=540 height=224>
+</p>
+
+
+This script augments the existing move-window/column actions by including better support for moving floating windows. It also supports scrolling when floating windows are moved left/right as well as moving (tiled) windows to other monitors when they're pushed against workspace boundaries.
+
+It's meant to replace the [default](https://github.com/niri-wm/niri/blob/9e72e4917ca31baf4010496bf7f4aaf78d34d236/resources/default-config.kdl#L413-L420) window movement keybinds:
+```kdl
+Mod+Shift+Left  { spawn-sh "python3 /path/to/niri_move_window_helper.py l"; }
+Mod+Shift+Right { spawn-sh "python3 /path/to/niri_move_window_helper.py r"; }
+Mod+Shift+Up    { spawn-sh "python3 /path/to/niri_move_window_helper.py u"; }
+Mod+Shift+Down  { spawn-sh "python3 /path/to/niri_move_window_helper.py d"; }
+```
+
+There are a number of configuration options that can be seen by running the script in a terminal with the `--help` flag:
+```bash
+python 3 /path/to/niri_move_window_helper.py --help
+```
+
+For example, floating windows are moved according to a tile-like layout, which is specified using the `--float_layout` (or `-f`) flag. By default this starts as a 3-column layout, with each column having 3 rows (specified as `-f 3 3 3`) but this can be adjusted if needed.
+
+<details>
+<summary>Note on X/Y Offsets</summary>
+
+As with the [float helper](#niri_float_helperpy) script, there's an xy offset between how niri reports floating window positions vs. how it specifies positioning. In order to avoid this, the script will attempt to determine the offset on first run, but this will lead to some jittering and a notification on the first run. To prevent this from happening, the x and y offsets can be provided directly to the script using the `-o` flag.
 
 </details>
 
