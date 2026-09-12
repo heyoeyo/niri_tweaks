@@ -8,7 +8,9 @@
 import argparse
 import subprocess
 import json
+import fcntl
 from pathlib import Path
+from os import environ
 
 # ---------------------------------------------------------------------------------------------------------------------
 # %% Handle script args
@@ -30,6 +32,12 @@ parser.add_argument(
 )
 parser.add_argument("-b", "--backward", action="store_true", help="Cycle backwards instead of forward")
 parser.add_argument("-w", "--workspace", action="store_true", help="Only search on active workspace")
+parser.add_argument(
+    "-v",
+    "--no_prev_focus",
+    action="store_true",
+    help="If set, disables ability to focus previous window when already focused on the target window",
+)
 parser.add_argument("-p", "--pull", action="store_true", help="If an instance exists, pull it next to focused window")
 parser.add_argument(
     "-s",
@@ -55,6 +63,12 @@ parser.add_argument(
     action="store_true",
     help="If enabled, instances are always spawned (unconditionally) in overview mode",
 )
+parser.add_argument(
+    "--lock_path",
+    type=str,
+    default=Path(environ.get("XDG_RUNTIME_DIR", "/tmp")) / "niri_spawnjump.lock",
+    help="Path to lock file (used to prevent multiple instances of spawnjump)",
+)
 
 # For convenience
 args = parser.parse_args()
@@ -63,6 +77,7 @@ TARGET_APP_ID = args.app_id
 SPAWN_LIMIT = max(1, args.limit)
 CYCLE_FORWARD = not args.backward
 ACTIVE_WORKSPACE_ONLY = args.workspace
+ENABLE_PREV_TOGGLE = not args.no_prev_focus
 ENABLE_PULL = args.pull
 ENABLE_PUSH = args.push
 SCRATCHPAD = args.scratch
@@ -71,6 +86,7 @@ NO_TILES = args.no_tiles
 ENABLE_SPAWN = not args.no_spawn
 ALWAYS_SPAWN = args.always_spawn
 SPAWN_IN_OVERVIEW = args.spawn_in_overview
+LOCK_PATH = args.lock_path
 
 # Sanity checks
 assert not (NO_FLOATS and NO_TILES), "Cannot disable checks for floating & tiled windows (enable only one or neither)"
@@ -89,6 +105,15 @@ if TARGET_APP_ID is None and COMMAND is not None:
     TARGET_APP_ID = COMMAND.split(" ")[-1] if COMMAND.startswith("flatpak") else COMMAND
     if Path(TARGET_APP_ID).is_file():
         TARGET_APP_ID = Path(TARGET_APP_ID).stem
+
+# Set up lock on this script. This prevents multiple spawnjump commands from stacking up
+# -> This is being done without a context-manager, so we block for the entire script!
+try:
+    LOCK_FILE = open(LOCK_PATH, "w")
+    fcntl.flock(LOCK_FILE.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+except BlockingIOError:
+    print("Another instance of spawnjump is already running...")
+    raise SystemExit()
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -246,7 +271,7 @@ def push_window(target_window_data: dict, all_windows_data: list[dict], scratchp
         return
 
     # Sanity check, make sure we're focused on the target window (should always be true?)
-    run_command(f"niri msg action focus-window --id {targ_id}")
+    focus_window(targ_id)
 
     # If there's only one column, just try to cycle focus (in case it's a stack)
     targ_wspace_id = target_window_data["workspace_id"]
@@ -276,12 +301,63 @@ def push_window(target_window_data: dict, all_windows_data: list[dict], scratchp
     return
 
 
+def run_spawn(command: str):
+
+    # Set up event stream & dump start-up events (expecting at least 6)
+    stream_args = "niri msg -j event-stream".split()
+    evt_stream = subprocess.Popen(stream_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    for _ in range(6):
+        evt = evt_stream.stdout.readline()
+        if evt.startswith('{"CastsChanged'):
+            break
+        pass
+
+    # Run the command and detach from caller
+    subprocess.Popen(
+        command.split(" "),
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        close_fds=True,
+        start_new_session=True,
+    )
+
+    # Wait for window spawn event
+    # -> This keeps the script alive until spawn actually happens
+    # -> With a file lock, this prevents queueing up multiple spawnjumps
+    is_open_handled = False
+    for idx in range(4):
+        evt = evt_stream.stdout.readline()
+        if evt.startswith('{"WindowOpenedOrChanged'):
+            is_open_handled = True
+            break
+
+    # Provide notification that opening wasn't handled properly
+    if not is_open_handled:
+        notify_title = f"{Path(__file__).name}"
+        msg = f"Error! No window open event spawning:\n{command}"
+        subprocess.run(["notify-send", notify_title, msg])
+
+    # Minor clean up (should happen on it's own, but doing this just in case)
+    evt_stream.terminate()
+
+    return
+
+
 # ---------------------------------------------------------------------------------------------------------------------
 # %% For setup/debugging
 
 enable_appid_inspection = COMMAND is None and TARGET_APP_ID is None
 if enable_appid_inspection:
+
     from time import sleep
+
+    # Release lock, since we don't care about blocking here
+    try:
+        fcntl.flock(LOCK_FILE.fileno(), fcntl.LOCK_UN)
+        LOCK_FILE.close()
+    except:
+        pass
 
     try:
         while True:
@@ -321,15 +397,7 @@ if NO_TILES:
 num_already_open = len(target_win_list)
 if num_already_open < SPAWN_LIMIT:
     if ENABLE_SPAWN and COMMAND is not None:
-        # Run the command and detach from caller
-        subprocess.Popen(
-            COMMAND.split(" "),
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            close_fds=True,
-            start_new_session=True,
-        )
+        run_spawn(COMMAND)
     raise SystemExit(0)
 
 # Push/pull/jump to the (single) open instance
@@ -339,6 +407,8 @@ if num_already_open == 1:
         push_window(target_win, all_win_list, SCRATCHPAD)
     elif ENABLE_PULL:
         pull_window(target_win, all_win_list)
+    elif ENABLE_PREV_TOGGLE and target_win["is_focused"]:
+        run_command("niri msg action focus-window-previous")
     else:
         focus_window(target_win["id"])
     raise SystemExit(0)
