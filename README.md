@@ -45,7 +45,7 @@ If you'd like to quickly try this out, use the following terminal command:
 ```bash
 curl https://raw.githubusercontent.com/heyoeyo/niri_tweaks/refs/heads/main/niri_tilemod.py | python3
 ```
-This downloads the [script text](https://raw.githubusercontent.com/heyoeyo/niri_tweaks/refs/heads/main/niri_tilemod.py) and pipes it straight into python to run it. After doing this, try opening 3 or more windows to see the effect. Use ctrl+c or close the terminal to disable the effect. Note that if you create a config file (as described below), it will take affect when running this command.
+This downloads the [script text](https://raw.githubusercontent.com/heyoeyo/niri_tweaks/refs/heads/main/niri_tilemod.py) and pipes it straight into python to run it. After doing this, try opening 3 or more windows to see the effect. Use ctrl+c or close the terminal to disable the effect. Note that if you create a config file (as described below), it will take effect when running this command.
 
 ### Permanent use
 
@@ -285,7 +285,7 @@ For example, one helpful flag is `-r` which can be used to print drawn region si
 <details>
 <summary>Note on X/Y Offsets</summary>
 
-Niri window movement uses a co-ordinate system that's offset from the full display (and `slurp`), which can lead to errors in window positioning. These offsets are determined on first run and recorded in a temporary file, but this can lead to some jittering. To prevent this from happening, provide the offsets to the script using the `-xo` and `-yo` flags. A notification is given to report the value of the offsets on first run, if missed, they'll be available in a temporary file: `/tmp/niri_float_helper/xyoffsets.info`
+Niri window movement uses a co-ordinate system that's offset from the full display (and `slurp`), which can lead to errors in window positioning. These offsets are determined on first run and recorded in a temporary file, but this can lead to some jittering. To prevent this from happening, provide the offsets to the script using the `-xo` and `-yo` flags. A notification is given to report the value of the offsets on first run, if missed, they'll be available in a temporary file: `/run/user/1000/niri_tweaks/xyoffsets.info`
 
 </details>
 
