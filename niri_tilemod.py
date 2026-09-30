@@ -319,7 +319,14 @@ def notify(message: str, timeout_ms: int | None = None) -> None:
 
 
 def get_tiled_workspace_windows(multi_window_dict: dict[int, dict], workspace_id: int) -> dict[int, dict]:
-    is_tiled_in_wspace = lambda win_info: win_info["workspace_id"] == workspace_id and not win_info["is_floating"]
+    """
+    Instead of checking the 'is_floating' state to determine if a window is tiled,
+    we check that it has valid column/row indexing, which should generalize better for edge cases
+    See: https://github.com/heyoeyo/niri_tweaks/issues/18
+    """
+    is_tiled_in_wspace = lambda win_info: (
+        (win_info["workspace_id"] == workspace_id) and (win_info["layout"]["pos_in_scrolling_layout"] is not None)
+    )
     return {win_id: win_info for win_id, win_info in multi_window_dict.items() if is_tiled_in_wspace(win_info)}
 
 
@@ -356,12 +363,10 @@ def get_missing_size_state(
 
 
 def get_rows_per_column(multi_window_dict: dict[int, dict]) -> dict[int, int]:
-    """Get row count per column as a dictionary for key/value format: {column_index: row_count}"""
+    """Assumes tiled windows only! Gets rows per column as a dictionary, format: {column_index: row_count}"""
 
     col_count_per_idx = {}
     for win_info in multi_window_dict.values():
-        if win_info["is_floating"]:
-            continue
         col_idx = win_info["layout"]["pos_in_scrolling_layout"][0]
         if col_idx not in col_count_per_idx.keys():
             col_count_per_idx[col_idx] = 0
@@ -606,8 +611,9 @@ try:
         # Handle post-processing after window close
         if closed_win_dict is not None:
 
-            # Ignore closing of floating windows (don't affect tiling)
-            if closed_win_dict["is_floating"]:
+            # Ignore closing of floating/untiled windows (don't affect tiling)
+            is_untiled = new_win_dict["layout"]["pos_in_scrolling_layout"] is None
+            if is_untiled:
                 continue
 
             # Get location info of closed window
@@ -647,11 +653,12 @@ try:
             curr_wspace_dict = all_wspace_dict[curr_wspace_id]
             curr_monitor_dict = all_monitor_dict[curr_wspace_dict["output"]]
 
-            # Ignore floats or windows that seem to be created with window rules (don't want to interfere)
+            # Ignore floats/un-tiled or windows that seem to be created with window rules (don't want to interfere)
             new_win_size_state = get_missing_size_state(new_win_dict, curr_monitor_dict)
             is_already_maximized = new_win_size_state != WindowSizeState.NOT_MAXIMIZED
             is_on_another_wspace = curr_wspace_id != focused_wspace_id
-            if new_win_dict["is_floating"] or is_already_maximized or is_on_another_wspace:
+            is_untiled = new_win_dict["layout"]["pos_in_scrolling_layout"] is None
+            if is_untiled or is_already_maximized or is_on_another_wspace:
                 continue
 
             # Get active tiling config (can be different for workspaces/monitors)
