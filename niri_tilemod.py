@@ -612,7 +612,7 @@ try:
         if closed_win_dict is not None:
 
             # Ignore closing of floating/untiled windows (don't affect tiling)
-            is_untiled = new_win_dict["layout"]["pos_in_scrolling_layout"] is None
+            is_untiled = closed_win_dict["layout"]["pos_in_scrolling_layout"] is None
             if is_untiled:
                 continue
 
