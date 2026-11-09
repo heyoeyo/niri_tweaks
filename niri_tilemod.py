@@ -158,7 +158,7 @@ class NiriIPC:
         niri_socket.connect(socket_path)
 
         self._writer = niri_socket.makefile("w", buffering=buffer_size)
-        self._reader = niri_socket.makefile("r", buffering=buffer_size)
+        self._reader = niri_socket.makefile("r", buffering=buffer_size, newline="\n")
         self._socket = niri_socket
         self._batched_actions_list = []
         self._batched_action_names = []
@@ -222,12 +222,16 @@ class NiriIPC:
 
         # Read responses (delimited by '\n')
         self._writer.close()
-        for line in self._reader:
-            for evt_message in line.splitlines():
-                msg_json = json.loads(evt_message)
-                evt_name = tuple(msg_json.keys())[0]
-                evt_data = msg_json.get(evt_name, {})
-                yield evt_name, evt_data
+        for evt_message_str in self._reader:
+            try:
+                msg_dict = json.loads(evt_message_str)
+            except json.JSONDecodeError:
+                if NOTIFY_UNEXPECTED:
+                    notify("Error parsing event stream JSON\n(likely closed/EOF)")
+                break
+            evt_name = tuple(msg_dict.keys())[0]
+            evt_data = msg_dict.get(evt_name, {})
+            yield evt_name, evt_data
 
         return
 
